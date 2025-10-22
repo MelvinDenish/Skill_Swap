@@ -5,8 +5,16 @@
 [build.environment]
   NODE_VERSION = "20"
 
-# SPA routing
+# Proxy API requests to backend
+[[redirects]]
+  from = "/api/*"
+  to = "https://skillswap-api-45ae.onrender.com/api/:splat"
+  status = 200
+  force = true
+
+# SPA routing - must come after API proxy
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
+  
