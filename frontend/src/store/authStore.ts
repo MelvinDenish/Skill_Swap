@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { User } from '../types';
+import api from '../services/api';
 
 interface AuthState {
   token: string | null;
@@ -19,10 +20,7 @@ export const useAuthStore = create<AuthState>()(
       setUser: (user: User) => set({ user }),
       logout: async () => {
         try {
-          await fetch('http://localhost:8080/api/auth/logout', {
-            method: 'POST',
-            credentials: 'include',
-          });
+          await api.post('/auth/logout');
         } catch {}
         set({ token: null, user: null });
       },
