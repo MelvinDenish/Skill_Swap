@@ -23,6 +23,5 @@ databases:
   - name: skillswap-db
     plan: free
     region: oregon
-    postgresMajorVersion: 16
     databaseName: skillswap
     user: skillswap_user
