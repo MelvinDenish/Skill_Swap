@@ -9,6 +9,7 @@ import com.skillswap.repository.UserRepository;
 import com.skillswap.repository.UserSkillsRepository;
 import com.skillswap.service.NotificationService;
 import com.skillswap.service.UserService;
+import com.skillswap.service.CalendarSyncService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -37,6 +38,9 @@ public class SessionController {
 
     @Autowired
     private NotificationService notificationService;
+
+    @Autowired
+    private CalendarSyncService calendarSyncService;
 
     @GetMapping("/my-sessions")
     public ResponseEntity<List<SessionDTO>> mySessions(@AuthenticationPrincipal UserDetails principal) {
@@ -68,6 +72,8 @@ public class SessionController {
         SkillSession saved = sessionRepository.save(s);
 
         notificationService.create(partner, "New session request from " + me.getName(), NotificationType.SESSION_REQUEST);
+
+        calendarSyncService.syncSession(saved);
 
         return ResponseEntity.ok(mapToDTO(saved, me));
     }
@@ -102,6 +108,7 @@ public class SessionController {
             userService.addPoints(learner.getId(), 10);
         }
 
+        calendarSyncService.syncSession(s);
         return ResponseEntity.ok(mapToDTO(s, me));
     }
 
@@ -113,6 +120,7 @@ public class SessionController {
             return ResponseEntity.status(403).build();
         }
         sessionRepository.deleteById(id);
+        calendarSyncService.deleteSessionEvents(s);
         return ResponseEntity.noContent().build();
     }
 

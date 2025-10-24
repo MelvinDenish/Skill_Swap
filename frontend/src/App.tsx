@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Toaster } from 'react-hot-toast';
 import ProtectedRoute from './components/ProtectedRoute';
 import Landing from './pages/Landing';
@@ -14,9 +14,14 @@ import Onboarding from './pages/Onboarding';
 import UserProfile from './pages/UserProfile';
 import { useAuthStore } from './store/authStore';
 import { userAPI } from './services/api';
+import OAuthSuccess from './pages/OAuthSuccess';
+import { connectNotifications, disconnectNotifications } from './services/ws';
+import toast from 'react-hot-toast';
+import Resources from './pages/Resources';
 
 export default function App() {
   const { token, user, setUser } = useAuthStore();
+  const currentSub = useRef<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -31,6 +36,16 @@ export default function App() {
     })();
     return () => { cancelled = true; };
   }, [token, user, setUser]);
+
+  useEffect(() => {
+    if (user?.id && currentSub.current !== user.id) {
+      currentSub.current = user.id;
+      connectNotifications(user.id, (n) => {
+        try { toast.success(n.message || 'New notification'); } catch {}
+      });
+    }
+    return () => { disconnectNotifications(); currentSub.current = null; };
+  }, [user?.id]);
   return (
     <BrowserRouter>
       <Toaster position="top-right" />
@@ -38,6 +53,7 @@ export default function App() {
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/oauth2/success" element={<OAuthSuccess />} />
         <Route path="/onboarding" element={<ProtectedRoute><Onboarding /></ProtectedRoute>} />
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/matching" element={<ProtectedRoute><Matching /></ProtectedRoute>} />
@@ -45,6 +61,7 @@ export default function App() {
         <Route path="/sessions" element={<ProtectedRoute><Sessions /></ProtectedRoute>} />
         <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
         <Route path="/user/:id" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
+        <Route path="/resources" element={<Resources />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </BrowserRouter>

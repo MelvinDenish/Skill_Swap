@@ -6,11 +6,14 @@ import com.skillswap.entity.UserSkills;
 import com.skillswap.repository.UserRepository;
 import com.skillswap.repository.UserSkillsRepository;
 import com.skillswap.security.JwtUtil;
+import com.skillswap.service.TotpService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.client.registration.ClientRegistration;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Arrays;
@@ -35,6 +38,12 @@ public class AuthController {
 
     @Autowired
     private JwtUtil jwtUtil;
+
+    @Autowired
+    private TotpService totpService;
+
+    @Autowired(required = false)
+    private ClientRegistrationRepository clientRegistrationRepository;
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest request, HttpServletResponse response) {
@@ -75,6 +84,13 @@ public class AuthController {
 
         if (!passwordEncoder.matches(request.password(), user.getPassword())) {
             return ResponseEntity.status(401).body("Invalid credentials");
+        }
+
+        if (Boolean.TRUE.equals(user.getTwoFactorEnabled())) {
+            String code = request.totpCode();
+            if (code == null || !totpService.verifyCode(user.getTotpSecret(), code)) {
+                return ResponseEntity.status(401).body("TOTP_REQUIRED");
+            }
         }
 
         UserSkills skills = userSkillsRepository.findByUserId(user.getId()).orElseThrow();
@@ -124,6 +140,18 @@ public class AuthController {
             return ResponseEntity.ok().build();
         }
         return ResponseEntity.status(401).body("Invalid or expired token");
+    }
+
+    @GetMapping("/providers")
+    public ResponseEntity<List<String>> providers() {
+        if (clientRegistrationRepository == null) return ResponseEntity.ok(List.of());
+        List<String> ids = new java.util.ArrayList<>();
+        try {
+            for (ClientRegistration reg : (Iterable<ClientRegistration>) clientRegistrationRepository) {
+                ids.add(reg.getRegistrationId());
+            }
+        } catch (Exception ignored) {}
+        return ResponseEntity.ok(ids);
     }
 
     private UserProfileDTO mapToDTO(User user, UserSkills skills) {

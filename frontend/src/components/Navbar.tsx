@@ -19,6 +19,7 @@ export default function Navbar() {
           <Link to="/matching" className="hover:text-purple-200">Find Matches</Link>
           <Link to="/sessions" className="hover:text-purple-200">Sessions</Link>
           <Link to="/leaderboard" className="hover:text-purple-200">Leaderboard</Link>
+          <Link to="/resources" className="hover:text-purple-200">Resources</Link>
           <Link to="/profile" className="hover:text-purple-200">Profile</Link>
           {user && (
             <button onClick={handleLogout} className="bg-white text-purple-600 px-4 py-2 rounded-lg hover:bg-purple-100">

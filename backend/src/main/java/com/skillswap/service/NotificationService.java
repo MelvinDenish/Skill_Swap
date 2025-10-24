@@ -5,6 +5,7 @@ import com.skillswap.entity.NotificationType;
 import com.skillswap.entity.User;
 import com.skillswap.repository.NotificationRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -15,13 +16,20 @@ public class NotificationService {
     @Autowired
     private NotificationRepository notificationRepository;
 
+    @Autowired(required = false)
+    private SimpMessagingTemplate messagingTemplate;
+
     public Notification create(User user, String message, NotificationType type) {
         Notification n = new Notification();
         n.setUser(user);
         n.setMessage(message);
         n.setType(type);
         n.setIsRead(false);
-        return notificationRepository.save(n);
+        Notification saved = notificationRepository.save(n);
+        if (messagingTemplate != null) {
+            messagingTemplate.convertAndSend("/topic/notifications/" + user.getId(), saved);
+        }
+        return saved;
     }
 
     public List<Notification> getForUser(java.util.UUID userId) {

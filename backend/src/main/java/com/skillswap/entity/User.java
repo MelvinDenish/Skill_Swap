@@ -39,6 +39,12 @@ public class User {
 
     private String level = "Beginner"; // Auto-calculated from points
 
+    private Boolean twoFactorEnabled = false;
+
+    private String totpSecret;
+
+    private String timezone = "UTC";
+
     @CreatedDate
     private LocalDateTime createdAt;
 

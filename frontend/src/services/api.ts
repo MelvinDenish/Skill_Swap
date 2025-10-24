@@ -40,12 +40,13 @@ api.interceptors.response.use(
 );
 
 export const authAPI = {
-  login: (email: string, password: string) => 
-    api.post('/auth/login', { email, password }),
+  login: (email: string, password: string, totpCode?: string) => 
+    api.post('/auth/login', totpCode ? { email, password, totpCode } : { email, password }),
   register: (name: string, email: string, password: string) =>
     api.post('/auth/register', { name, email, password }),
   logout: () => api.post('/auth/logout'),
   verify: () => api.get('/auth/verify'),
+  providers: () => api.get<string[]>('/auth/providers'),
 };
 
 export const userAPI = {
@@ -78,6 +79,38 @@ export const notificationAPI = {
   list: () => api.get('/notifications'),
   markRead: (id: string) => api.put(`/notifications/${id}/read`),
   remove: (id: string) => api.delete(`/notifications/${id}`),
+};
+
+export const twoFAAPI = {
+  setup: () => api.get('/2fa/setup'),
+  enable: (secret: string, code: string) => api.post('/2fa/enable', { secret, code }),
+  disable: (code: string) => api.post('/2fa/disable', { code }),
+};
+
+export const resourceAPI = {
+  listAll: () => api.get('/resources'),
+  my: () => api.get('/resources/my'),
+  upload: (file: File, sessionId?: string, skillName?: string) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    if (sessionId) fd.append('sessionId', sessionId);
+    if (skillName) fd.append('skillName', skillName);
+    return api.post('/resources/upload', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+  },
+  link: (data: { title: string; url: string; description?: string; sessionId?: string; skillName?: string; }) =>
+    api.post('/resources/link', data),
+  bySession: (sessionId: string) => api.get(`/resources/session/${sessionId}`),
+  bySkill: (skill: string) => api.get(`/resources/skill/${encodeURIComponent(skill)}`),
+  remove: (id: string) => api.delete(`/resources/${id}`),
+  downloadUrl: (id: string) => {
+    const base = (import.meta.env?.VITE_API_BASE_URL ?? '/api') as string;
+    return `${base}/resources/${id}/download`;
+  }
+};
+
+export const calendarAPI = {
+  myMappings: () => api.get('/calendar/mappings'),
+  bySession: (sessionId: string) => api.get(`/calendar/session/${sessionId}`),
 };
 
 export default api;
