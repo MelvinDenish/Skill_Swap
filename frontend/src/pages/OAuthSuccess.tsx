@@ -27,6 +27,6 @@ export default function OAuthSuccess() {
   }, [navigate, setUser]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center">Finishing login...</div>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-neutral-950 dark:text-neutral-100">Finishing login...</div>
   );
 }

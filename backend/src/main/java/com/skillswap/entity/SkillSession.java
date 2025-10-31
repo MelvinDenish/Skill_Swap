@@ -40,6 +40,10 @@ public class SkillSession {
 
     private String meetingLink;
 
+    private String videoRoom;
+
+    private String whiteboardRoom;
+
     @CreatedDate
     private LocalDateTime createdAt;
 }

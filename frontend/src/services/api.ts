@@ -49,6 +49,15 @@ export const authAPI = {
   providers: () => api.get<string[]>('/auth/providers'),
 };
 
+export const chatAPI = {
+  start: (otherId: string) => api.post(`/chat/start/${otherId}`),
+  conversations: () => api.get('/chat/conversations'),
+  messages: (conversationId: string, page = 0, size = 20) => api.get(`/chat/${conversationId}/messages`, { params: { page, size } }),
+  send: (conversationId: string, text: string) => api.post(`/chat/${conversationId}/send`, { text }),
+  markRead: (conversationId: string) => api.put(`/chat/${conversationId}/read`),
+  unread: (conversationId: string) => api.get(`/chat/${conversationId}/unread`),
+};
+
 export const userAPI = {
   getMe: () => api.get('/users/me'),
   updateMe: (data: any) => api.put('/users/me', data),
@@ -64,6 +73,7 @@ export const sessionAPI = {
   createSession: (data: any) => api.post('/sessions', data),
   updateStatus: (id: string, status: string) => 
     api.put(`/sessions/${id}/status`, { status }),
+  joinInfo: (id: string) => api.get(`/sessions/${id}/join-info`),
 };
 
 export const reviewAPI = {
@@ -105,12 +115,48 @@ export const resourceAPI = {
   downloadUrl: (id: string) => {
     const base = (import.meta.env?.VITE_API_BASE_URL ?? '/api') as string;
     return `${base}/resources/${id}/download`;
-  }
+  },
+  download: (id: string) => api.get(`/resources/${id}/download`, { responseType: 'blob' })
+};
+
+export const aiAPI = {
+  ask: (question: string, skill?: string) => api.post('/ai/ask', { question, skill }),
+  history: (page = 0, size = 20) => api.get(`/ai/history`, { params: { page, size } }),
+  clearHistory: () => api.delete('/ai/history'),
 };
 
 export const calendarAPI = {
   myMappings: () => api.get('/calendar/mappings'),
   bySession: (sessionId: string) => api.get(`/calendar/session/${sessionId}`),
+};
+
+export const groupsAPI = {
+  list: (skill?: string, page = 0, size = 20) => api.get('/groups', { params: { skill, page, size } }),
+  create: (data: { name: string; description?: string; relatedSkill?: string; maxMembers?: number; isPrivate?: boolean; }) =>
+    api.post('/groups', data),
+  get: (id: string) => api.get(`/groups/${id}`),
+  join: (id: string) => api.post(`/groups/${id}/join`),
+  leave: (id: string) => api.post(`/groups/${id}/leave`),
+  recentMessages: (id: string) => api.get(`/groups/${id}/messages`),
+  sendMessage: (id: string, text: string) => api.post(`/groups/${id}/messages`, { text }),
+  members: (id: string) => api.get(`/groups/${id}/members`),
+  resources: (id: string) => api.get(`/groups/${id}/resources`),
+  shareResource: (id: string, resourceId: string) => api.post(`/groups/${id}/resources/share`, { resourceId }),
+  sessions: (id: string) => api.get(`/groups/${id}/sessions`),
+  scheduleSession: (id: string, scheduledTime: string, duration?: number) => api.post(`/groups/${id}/sessions`, { scheduledTime, duration }),
+};
+
+export const examAPI = {
+  questions: (skill: string, difficulty?: string, count = 10) =>
+    api.get('/exams/questions', { params: { skill, difficulty, count } }),
+  submit: (payload: { skill: string; difficulty?: string; items: { questionId: string; answer: string; timeSpent?: number; }[] }) =>
+    api.post('/exams/submit', payload),
+  leaderboard: (skill?: string) => api.get('/exams/leaderboard', { params: { skill } }),
+  attempts: (page = 0, size = 20) => api.get('/exams/attempts', { params: { page, size } }),
+  daily: () => api.get('/exams/daily-challenge'),
+  scheduleMock: (otherUserId: string, skillTopic: string, interviewType: string, scheduledTime: string) =>
+    api.post('/exams/mock/schedule', { otherUserId, skillTopic, interviewType, scheduledTime }),
+  feedback: (id: string, feedback: string) => api.post(`/exams/mock/${id}/feedback`, { feedback }),
 };
 
 export default api;

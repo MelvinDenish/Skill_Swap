@@ -30,6 +30,11 @@ export interface Match {
   userId: string;
   name: string;
   matchScore: number;
+  profilePictureUrl?: string | null;
+  rating?: number;
+  completedSessions?: number;
+  matchingSkillsTheyOffer?: string[];
+  matchingSkillsYouOffer?: string[];
 }
 
 export interface NotificationItem {

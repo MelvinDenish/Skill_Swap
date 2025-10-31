@@ -53,6 +53,12 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
     }
 
+    @ExceptionHandler(RateLimitException.class)
+    public ResponseEntity<ApiError> handleRateLimit(RateLimitException ex, HttpServletRequest req) {
+        ApiError body = new ApiError(OffsetDateTime.now(), 429, "TooManyRequests", ex.getMessage(), req.getRequestURI());
+        return ResponseEntity.status(429).body(body);
+    }
+
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<ApiError> handleRuntime(RuntimeException ex, HttpServletRequest req) {
         ApiError body = new ApiError(OffsetDateTime.now(), HttpStatus.BAD_REQUEST.value(), "BadRequest", ex.getMessage(), req.getRequestURI());

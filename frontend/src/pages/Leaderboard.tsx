@@ -31,16 +31,16 @@ export default function Leaderboard() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-neutral-950">
       <Navbar />
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-6">Leaderboard</h1>
         {loading ? (
           <div className="text-center py-12">Loading...</div>
         ) : (
-          <div className="bg-white rounded-xl shadow overflow-hidden">
+          <div className="bg-white dark:bg-neutral-900 dark:border dark:border-neutral-800 rounded-xl shadow overflow-hidden">
             <table className="w-full">
-              <thead className="bg-gray-100 text-left">
+              <thead className="bg-gray-100 dark:bg-neutral-900 text-left border-b dark:border-neutral-800">
                 <tr>
                   <th className="p-4">#</th>
                   <th className="p-4">User</th>
@@ -52,7 +52,7 @@ export default function Leaderboard() {
               </thead>
               <tbody>
                 {items.map((u, i) => (
-                  <tr key={u.id} className="border-t">
+                  <tr key={u.id} className="border-t dark:border-neutral-800">
                     <td className="p-4">{i + 1}</td>
                     <td className="p-4 flex items-center gap-3">
                       <img src={u.profilePictureUrl || '/default-avatar.svg'} className="w-8 h-8 rounded-full" />

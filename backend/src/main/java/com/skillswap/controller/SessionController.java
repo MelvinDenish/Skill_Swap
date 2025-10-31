@@ -112,6 +112,27 @@ public class SessionController {
         return ResponseEntity.ok(mapToDTO(s, me));
     }
 
+    public record SessionJoinInfoDTO(UUID sessionId, String videoUrl, String whiteboardUrl) {}
+
+    @GetMapping("/{id}/join-info")
+    public ResponseEntity<SessionJoinInfoDTO> joinInfo(@AuthenticationPrincipal UserDetails principal, @PathVariable UUID id) {
+        User me = userRepository.findByEmail(principal.getUsername()).orElseThrow();
+        SkillSession s = sessionRepository.findById(id).orElseThrow();
+        if (!s.getTeacher().getId().equals(me.getId()) && !s.getLearner().getId().equals(me.getId())) {
+            return ResponseEntity.status(403).build();
+        }
+        if (s.getVideoRoom() == null || s.getVideoRoom().isEmpty()) {
+            s.setVideoRoom("ss-" + java.util.UUID.randomUUID());
+        }
+        if (s.getWhiteboardRoom() == null || s.getWhiteboardRoom().isEmpty()) {
+            s.setWhiteboardRoom("ss-" + java.util.UUID.randomUUID());
+        }
+        sessionRepository.save(s);
+        String videoUrl = "https://meet.jit.si/" + s.getVideoRoom();
+        String whiteboardUrl = "https://excalidraw.com"; // public board; manual share if needed
+        return ResponseEntity.ok(new SessionJoinInfoDTO(s.getId(), videoUrl, whiteboardUrl));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@AuthenticationPrincipal UserDetails principal, @PathVariable UUID id) {
         User me = userRepository.findByEmail(principal.getUsername()).orElseThrow();

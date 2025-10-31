@@ -9,7 +9,6 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [totpRequired, setTotpRequired] = useState(false);
   const [totpCode, setTotpCode] = useState('');
-  const [providers, setProviders] = useState<string[]>([]);
   const navigate = useNavigate();
   const { setAuth } = useAuthStore();
 
@@ -32,26 +31,17 @@ export default function Login() {
     }
   };
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const { data } = await authAPI.providers();
-        setProviders(Array.isArray(data) ? data : []);
-      } catch { setProviders([]); }
-    })();
-  }, []);
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
-      <div className="bg-white p-8 rounded-2xl shadow-2xl w-96">
-        <h1 className="text-3xl font-bold text-center mb-6 text-gray-800">Welcome Back</h1>
+    <div className="min-h-screen bg-gradient-to-br from-indigo-600 to-violet-600 dark:bg-neutral-950 flex items-center justify-center">
+      <div className="bg-white dark:bg-neutral-900 dark:text-neutral-100 dark:border dark:border-neutral-800 p-8 rounded-2xl shadow-2xl w-96">
+        <h1 className="text-3xl font-bold text-center mb-6 text-gray-800 dark:text-gray-100">Welcome Back</h1>
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
             type="email"
             placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600"
+            className="w-full px-4 py-3 border border-gray-300 dark:border-neutral-800 dark:bg-neutral-900/50 dark:text-neutral-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
             required
           />
           <input
@@ -59,7 +49,7 @@ export default function Login() {
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600"
+            className="w-full px-4 py-3 border border-gray-300 dark:border-neutral-800 dark:bg-neutral-900/50 dark:text-neutral-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
             required
           />
           {totpRequired && (
@@ -68,33 +58,27 @@ export default function Login() {
               placeholder="Authenticator code"
               value={totpCode}
               onChange={(e) => setTotpCode(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600"
+              className="w-full px-4 py-3 border border-gray-300 dark:border-neutral-800 dark:bg-neutral-900/50 dark:text-neutral-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
               required
             />
           )}
-          <button type="submit" className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 rounded-lg font-semibold hover:opacity-90">
+          <button type="submit" className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 text-white py-3 rounded-lg font-semibold hover:opacity-90 dark:bg-none dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:text-neutral-100 dark:border dark:border-neutral-700">
             Login
           </button>
         </form>
-        {providers.length > 0 && (
-          <div className="mt-4 space-y-2">
-            {(() => {
-              const base = (import.meta.env?.VITE_API_BASE_URL as string | undefined)?.replace('/api','') || '';
-              return (
-                <>
-                  {providers.includes('google') && (
-                    <a href={`${base}/oauth2/authorization/google`} className="block w-full text-center border border-gray-300 rounded-lg py-2 hover:bg-gray-50">Continue with Google</a>
-                  )}
-                  {providers.includes('github') && (
-                    <a href={`${base}/oauth2/authorization/github`} className="block w-full text-center border border-gray-300 rounded-lg py-2 hover:bg-gray-50">Continue with GitHub</a>
-                  )}
-                </>
-              );
-            })()}
-          </div>
-        )}
+        <div className="mt-4 space-y-2">
+          {(() => {
+            const base = (import.meta.env?.VITE_API_BASE_URL as string | undefined)?.replace('/api','') || '';
+            return (
+              <>
+                <a href={`${base}/oauth2/authorization/google`} className="block w-full text-center border border-gray-300 dark:border-neutral-800 rounded-lg py-2 hover:bg-gray-50 dark:hover:bg-neutral-800">Continue with Google</a>
+                <a href={`${base}/oauth2/authorization/github`} className="block w-full text-center border border-gray-300 dark:border-neutral-800 rounded-lg py-2 hover:bg-gray-50 dark:hover:bg-neutral-800">Continue with GitHub</a>
+              </>
+            );
+          })()}
+        </div>
         <p className="text-center mt-4 text-gray-600">
-          Don't have an account? <Link to="/register" className="text-purple-600 hover:underline">Register</Link>
+          Don't have an account? <Link to="/register" className="text-indigo-600 hover:underline">Register</Link>
         </p>
       </div>
     </div>

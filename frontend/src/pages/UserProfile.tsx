@@ -83,24 +83,24 @@ export default function UserProfile() {
   };
 
   if (loading) return (
-    <div className="min-h-screen bg-gray-50"><Navbar /><div className="container mx-auto px-4 py-8">Loading...</div></div>
+    <div className="min-h-screen bg-gray-50 dark:bg-neutral-950"><Navbar /><div className="container mx-auto px-4 py-8">Loading...</div></div>
   );
 
   if (!profile) return (
-    <div className="min-h-screen bg-gray-50"><Navbar /><div className="container mx-auto px-4 py-8">User not found</div></div>
+    <div className="min-h-screen bg-gray-50 dark:bg-neutral-950"><Navbar /><div className="container mx-auto px-4 py-8">User not found</div></div>
   );
 
   const canBook = user && user.id !== profile.id;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-neutral-950">
       <Navbar />
       <div className="container mx-auto px-4 py-8 max-w-5xl">
-        <div className="bg-white rounded-xl shadow p-6 flex flex-col md:flex-row gap-6">
+        <div className="bg-white dark:bg-neutral-900 dark:border dark:border-neutral-800 rounded-xl shadow p-6 flex flex-col md:flex-row gap-6">
           <img src={profile.profilePictureUrl || '/default-avatar.svg'} className="w-32 h-32 rounded-full" />
           <div className="flex-1">
             <h1 className="text-3xl font-bold">{profile.name}</h1>
-            <p className="text-gray-600 mt-2">{profile.bio || 'No bio yet'}</p>
+            <p className="text-gray-600 dark:text-gray-400 mt-2">{profile.bio || 'No bio yet'}</p>
             <div className="flex gap-6 mt-4 text-sm">
               <div><span className="font-semibold">Level:</span> {profile.level}</div>
               <div><span className="font-semibold">Rating:</span> {profile.rating?.toFixed(1)} ⭐</div>
@@ -108,70 +108,70 @@ export default function UserProfile() {
             </div>
             <div className="mt-4">
               <div className="font-semibold">Availability:</div>
-              <div className="text-gray-700">{profile.availability || 'Not specified'}</div>
+              <div className="text-gray-700 dark:text-gray-300">{profile.availability || 'Not specified'}</div>
             </div>
           </div>
         </div>
 
         <div className="grid md:grid-cols-2 gap-6 mt-6">
-          <div className="bg-white rounded-xl shadow p-6">
+          <div className="bg-white dark:bg-neutral-900 dark:border dark:border-neutral-800 rounded-xl shadow p-6">
             <h2 className="text-xl font-semibold mb-3">Skills Offered</h2>
             <div className="flex flex-wrap gap-2">
               {(profile.skillsOffered || []).map((s: string) => (
-                <span key={s} className="bg-green-100 text-green-800 px-2 py-1 rounded text-sm">{s}</span>
+                <span key={s} className="border border-gray-300 text-gray-700 bg-transparent dark:border-neutral-800 text-secondary px-2 py-1 rounded text-sm">{s}</span>
               ))}
             </div>
           </div>
-          <div className="bg-white rounded-xl shadow p-6">
+          <div className="bg-white dark:bg-neutral-900 dark:border dark:border-neutral-800 rounded-xl shadow p-6">
             <h2 className="text-xl font-semibold mb-3">Skills Wanted</h2>
             <div className="flex flex-wrap gap-2">
               {(profile.skillsWanted || []).map((s: string) => (
-                <span key={s} className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">{s}</span>
+                <span key={s} className="border border-gray-300 text-gray-700 bg-transparent dark:border-neutral-800 text-secondary px-2 py-1 rounded text-sm">{s}</span>
               ))}
             </div>
           </div>
         </div>
 
         {canBook && (
-          <div className="bg-white rounded-xl shadow p-6 mt-6">
+          <div className="bg-white dark:bg-neutral-900 dark:border dark:border-neutral-800 rounded-xl shadow p-6 mt-6">
             <h2 className="text-xl font-semibold mb-4">Request a Session</h2>
             <div className="grid md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Skill Topic</label>
-                <input value={skillTopic} onChange={(e) => setSkillTopic(e.target.value)} className="w-full border rounded p-2" placeholder="e.g., React Basics" />
+                <input value={skillTopic} onChange={(e) => setSkillTopic(e.target.value)} className="w-full border dark:border-neutral-800 dark:bg-neutral-900/50 dark:text-neutral-100 rounded p-2" placeholder="e.g., React Basics" />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Date & Time</label>
-                <input type="datetime-local" value={scheduledTime} onChange={(e) => setScheduledTime(e.target.value)} className="w-full border rounded p-2" />
+                <input type="datetime-local" value={scheduledTime} onChange={(e) => setScheduledTime(e.target.value)} className="w-full border dark:border-neutral-800 dark:bg-neutral-900/50 dark:text-neutral-100 rounded p-2" />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Duration (minutes)</label>
-                <input type="number" value={duration} onChange={(e) => setDuration(parseInt(e.target.value || '60', 10))} className="w-full border rounded p-2" />
+                <input type="number" value={duration} onChange={(e) => setDuration(parseInt(e.target.value || '60', 10))} className="w-full border dark:border-neutral-800 dark:bg-neutral-900/50 dark:text-neutral-100 rounded p-2" />
               </div>
               <div className="flex items-center gap-2">
                 <input id="isTeacher" type="checkbox" checked={isTeacher} onChange={(e) => setIsTeacher(e.target.checked)} />
                 <label htmlFor="isTeacher">I will teach</label>
               </div>
             </div>
-            <button onClick={createSession} className="mt-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white py-2 px-4 rounded-lg">Send Request</button>
+            <button onClick={createSession} className="mt-4 bg-gradient-to-r from-indigo-600 to-violet-600 text-white py-2 px-4 rounded-lg dark:bg-none dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:text-neutral-100 dark:border dark:border-neutral-700">Send Request</button>
           </div>
         )}
 
-        <div className="bg-white rounded-xl shadow p-6 mt-6">
+        <div className="bg-white dark:bg-neutral-900 dark:border dark:border-neutral-800 rounded-xl shadow p-6 mt-6">
           <h2 className="text-xl font-semibold mb-4">Reviews</h2>
           {reviews.length === 0 ? (
-            <div className="text-gray-600">No reviews yet</div>
+            <div className="text-gray-600 dark:text-gray-400">No reviews yet</div>
           ) : (
             <div className="space-y-4">
               {reviews.map(r => (
-                <div key={r.id} className="border-b pb-3">
+                <div key={r.id} className="border-b dark:border-neutral-800 pb-3">
                   <div className="flex items-center gap-3">
                     <img src={r.reviewerProfilePictureUrl || '/default-avatar.svg'} className="w-8 h-8 rounded-full" />
                     <div className="font-semibold">{r.reviewerName}</div>
                     <div className="text-yellow-600">{'★'.repeat(r.rating)}{'☆'.repeat(5-r.rating)}</div>
                   </div>
-                  <div className="text-gray-700 mt-2">{r.comment}</div>
-                  <div className="text-gray-400 text-xs mt-1">{new Date(r.createdAt).toLocaleString()}</div>
+                  <div className="text-gray-700 dark:text-gray-200 mt-2">{r.comment}</div>
+                  <div className="text-gray-400 dark:text-gray-500 text-xs mt-1">{new Date(r.createdAt).toLocaleString()}</div>
                 </div>
               ))}
             </div>

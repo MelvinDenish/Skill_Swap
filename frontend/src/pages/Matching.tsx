@@ -25,14 +25,14 @@ export default function Matching() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-neutral-950">
       <Navbar />
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-4xl font-bold mb-8">Find Your Perfect Skill Match</h1>
         {loading ? (
           <div className="text-center py-12">Loading matches...</div>
         ) : matches.length === 0 ? (
-          <div className="text-center py-12 text-gray-600">
+          <div className="text-center py-12 text-gray-600 dark:text-gray-400">
             No matches found. Make sure you've added skills to your profile!
           </div>
         ) : (

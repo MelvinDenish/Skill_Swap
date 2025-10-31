@@ -9,7 +9,6 @@ import Dashboard from './pages/Dashboard';
 import Matching from './pages/Matching';
 import Profile from './pages/Profile';
 import Sessions from './pages/Sessions';
-import Leaderboard from './pages/Leaderboard';
 import Onboarding from './pages/Onboarding';
 import UserProfile from './pages/UserProfile';
 import { useAuthStore } from './store/authStore';
@@ -18,6 +17,10 @@ import OAuthSuccess from './pages/OAuthSuccess';
 import { connectNotifications, disconnectNotifications } from './services/ws';
 import toast from 'react-hot-toast';
 import Resources from './pages/Resources';
+import Groups from './pages/Groups';
+import GroupDetail from './pages/GroupDetail';
+import ChatPanel from './components/chat/ChatPanel';
+import SessionRoom from './pages/SessionRoom';
 
 export default function App() {
   const { token, user, setUser } = useAuthStore();
@@ -59,11 +62,15 @@ export default function App() {
         <Route path="/matching" element={<ProtectedRoute><Matching /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
         <Route path="/sessions" element={<ProtectedRoute><Sessions /></ProtectedRoute>} />
-        <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
+        <Route path="/sessions/:id/join" element={<ProtectedRoute><SessionRoom /></ProtectedRoute>} />
+        
         <Route path="/user/:id" element={<ProtectedRoute><UserProfile /></ProtectedRoute>} />
+        <Route path="/groups" element={<ProtectedRoute><Groups /></ProtectedRoute>} />
+        <Route path="/groups/:id" element={<ProtectedRoute><GroupDetail /></ProtectedRoute>} />
         <Route path="/resources" element={<Resources />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
+      {user && <ChatPanel />}
     </BrowserRouter>
   );
 }

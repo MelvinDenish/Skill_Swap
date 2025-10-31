@@ -6,7 +6,9 @@ import com.skillswap.entity.ResourceItem;
 import com.skillswap.entity.ResourceType;
 import com.skillswap.entity.SkillSession;
 import com.skillswap.entity.User;
+import com.skillswap.entity.ResourceVersion;
 import com.skillswap.repository.ResourceItemRepository;
+import com.skillswap.repository.ResourceVersionRepository;
 import com.skillswap.repository.SkillSessionRepository;
 import com.skillswap.repository.UserRepository;
 import com.skillswap.service.storage.StorageService;
@@ -38,17 +40,28 @@ public class ResourceController {
             "application/pdf",
             "image/png",
             "image/jpeg",
-            "image/webp"
+            "image/webp",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // .docx
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation", // .pptx
+            "application/zip",
+            "video/mp4",
+            "video/webm"
     );
 
     @Value("${app.upload.max-bytes:10485760}")
     private long maxBytes;
+
+    @Value("${app.upload.monthly-quota-bytes:524288000}")
+    private long monthlyQuotaBytes;
 
     @Autowired
     private StorageService storageService;
 
     @Autowired
     private ResourceItemRepository resourceItemRepository;
+
+    @Autowired(required = false)
+    private ResourceVersionRepository resourceVersionRepository;
 
     @Autowired
     private SkillSessionRepository sessionRepository;
@@ -64,7 +77,15 @@ public class ResourceController {
         User me = userRepository.findByEmail(principal.getUsername()).orElseThrow();
         if (file.getSize() > maxBytes) return ResponseEntity.status(413).build();
         String contentType = file.getContentType() == null ? "application/octet-stream" : file.getContentType();
-        if (!ALLOWED_TYPES.contains(contentType)) return ResponseEntity.status(415).build();
+        if (!isAllowed(contentType, file.getOriginalFilename())) return ResponseEntity.status(415).build();
+
+        // Enforce monthly per-user quota
+        java.time.LocalDateTime monthStart = java.time.LocalDate.now().withDayOfMonth(1).atStartOfDay();
+        java.time.LocalDateTime monthEnd = monthStart.plusMonths(1);
+        Long used = resourceItemRepository.sumSizeByOwnerInRange(me.getId(), monthStart, monthEnd);
+        if (used == null) used = 0L;
+        if (used + file.getSize() > monthlyQuotaBytes) return ResponseEntity.status(413).build();
+
         String key = storageService.store(file);
         ResourceItem item = new ResourceItem();
         item.setOwner(me);
@@ -74,11 +95,94 @@ public class ResourceController {
             item.setSession(s);
         }
         if (StringUtils.hasText(skillName)) item.setSkillName(skillName);
-        item.setType(ResourceType.PDF.equals(detectType(contentType, file.getOriginalFilename())) ? ResourceType.PDF : ResourceType.IMAGE);
+        item.setType(detectType(contentType, file.getOriginalFilename()));
         item.setTitle(file.getOriginalFilename());
         item.setFileKey(key);
         item.setContentType(contentType);
         item.setSizeBytes(file.getSize());
+        ResourceItem saved = resourceItemRepository.save(item);
+        return ResponseEntity.ok(toDto(saved));
+    }
+
+    public record ResourceVersionDTO(Integer version, String contentType, Long sizeBytes, String uploadedAt) {}
+
+    @GetMapping("/{id}/versions")
+    public ResponseEntity<List<ResourceVersionDTO>> versions(@AuthenticationPrincipal UserDetails principal, @PathVariable UUID id) {
+        ResourceItem item = resourceItemRepository.findById(id).orElseThrow();
+        // Owner-only for now
+        if (principal != null) {
+            User me = userRepository.findByEmail(principal.getUsername()).orElseThrow();
+            if (!item.getOwner().getId().equals(me.getId())) return ResponseEntity.status(403).build();
+        }
+        if (resourceVersionRepository == null) return ResponseEntity.ok(List.of());
+        List<ResourceVersionDTO> list = resourceVersionRepository.findByResource_IdOrderByVersionDesc(id)
+                .stream().map(v -> new ResourceVersionDTO(v.getVersion(), v.getContentType(), v.getSizeBytes(), v.getUploadedAt() == null ? null : v.getUploadedAt().toString()))
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(list);
+    }
+
+    @PostMapping(value = "/{id}/versions", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ResourceItemDTO> uploadNewVersion(@AuthenticationPrincipal UserDetails principal,
+                                                            @PathVariable UUID id,
+                                                            @RequestParam("file") MultipartFile file) throws IOException {
+        if (resourceVersionRepository == null) return ResponseEntity.status(501).build();
+        User me = userRepository.findByEmail(principal.getUsername()).orElseThrow();
+        ResourceItem item = resourceItemRepository.findById(id).orElseThrow();
+        if (!item.getOwner().getId().equals(me.getId())) return ResponseEntity.status(403).build();
+        if (file.getSize() > maxBytes) return ResponseEntity.status(413).build();
+        String contentType = file.getContentType() == null ? "application/octet-stream" : file.getContentType();
+        if (!isAllowed(contentType, file.getOriginalFilename())) return ResponseEntity.status(415).build();
+
+        // Save current as a version entry
+        ResourceVersion current = new ResourceVersion();
+        current.setResource(item);
+        current.setVersion(item.getVersion() == null ? 1 : item.getVersion());
+        current.setFileKey(item.getFileKey());
+        current.setUrl(item.getUrl());
+        current.setContentType(item.getContentType());
+        current.setSizeBytes(item.getSizeBytes());
+        current.setUploadedAt(java.time.LocalDateTime.now());
+        resourceVersionRepository.save(current);
+
+        // Store new
+        String key = storageService.store(file);
+        item.setFileKey(key);
+        item.setUrl(null);
+        item.setContentType(contentType);
+        item.setSizeBytes(file.getSize());
+        item.setType(detectType(contentType, file.getOriginalFilename()));
+        item.setVersion((item.getVersion() == null ? 1 : item.getVersion()) + 1);
+        ResourceItem saved = resourceItemRepository.save(item);
+        return ResponseEntity.ok(toDto(saved));
+    }
+
+    @PostMapping("/{id}/versions/{version}/revert")
+    public ResponseEntity<ResourceItemDTO> revert(@AuthenticationPrincipal UserDetails principal,
+                                                 @PathVariable UUID id,
+                                                 @PathVariable Integer version) {
+        if (resourceVersionRepository == null) return ResponseEntity.status(501).build();
+        User me = userRepository.findByEmail(principal.getUsername()).orElseThrow();
+        ResourceItem item = resourceItemRepository.findById(id).orElseThrow();
+        if (!item.getOwner().getId().equals(me.getId())) return ResponseEntity.status(403).build();
+        ResourceVersion target = resourceVersionRepository.findByResource_IdAndVersion(id, version).orElseThrow();
+
+        // Save current state as a version before reverting
+        ResourceVersion current = new ResourceVersion();
+        current.setResource(item);
+        current.setVersion(item.getVersion() == null ? 1 : item.getVersion());
+        current.setFileKey(item.getFileKey());
+        current.setUrl(item.getUrl());
+        current.setContentType(item.getContentType());
+        current.setSizeBytes(item.getSizeBytes());
+        current.setUploadedAt(java.time.LocalDateTime.now());
+        resourceVersionRepository.save(current);
+
+        // Apply target
+        item.setFileKey(target.getFileKey());
+        item.setUrl(target.getUrl());
+        item.setContentType(target.getContentType());
+        item.setSizeBytes(target.getSizeBytes());
+        item.setVersion((item.getVersion() == null ? 1 : item.getVersion()) + 1);
         ResourceItem saved = resourceItemRepository.save(item);
         return ResponseEntity.ok(toDto(saved));
     }
@@ -136,6 +240,9 @@ public class ResourceController {
     @GetMapping("/{id}/download")
     public ResponseEntity<Resource> download(@PathVariable UUID id) throws IOException {
         ResourceItem item = resourceItemRepository.findById(id).orElseThrow();
+        // increment view count
+        item.setViewCount((item.getViewCount() == null ? 0 : item.getViewCount()) + 1);
+        resourceItemRepository.save(item);
         if (item.getType() == ResourceType.LINK && item.getUrl() != null) {
             return ResponseEntity.status(302).location(URI.create(item.getUrl())).build();
         }
@@ -166,7 +273,18 @@ public class ResourceController {
         if (contentType != null && contentType.equals("application/pdf")) return ResourceType.PDF;
         String ext = filename == null ? "" : filename.toLowerCase();
         if (ext.endsWith(".pdf")) return ResourceType.PDF;
-        return ResourceType.IMAGE;
+        if ((contentType != null && contentType.startsWith("image/")) ||
+                ext.endsWith(".png") || ext.endsWith(".jpg") || ext.endsWith(".jpeg") || ext.endsWith(".webp")) {
+            return ResourceType.IMAGE;
+        }
+        return ResourceType.OTHER;
+    }
+
+    private boolean isAllowed(String contentType, String filename) {
+        if (ALLOWED_TYPES.contains(contentType)) return true;
+        String ext = filename == null ? "" : filename.toLowerCase();
+        return ext.endsWith(".pdf") || ext.endsWith(".png") || ext.endsWith(".jpg") || ext.endsWith(".jpeg") || ext.endsWith(".webp") ||
+                ext.endsWith(".docx") || ext.endsWith(".pptx") || ext.endsWith(".zip") || ext.endsWith(".mp4") || ext.endsWith(".webm");
     }
 
     private ResourceItemDTO toDto(ResourceItem r) {

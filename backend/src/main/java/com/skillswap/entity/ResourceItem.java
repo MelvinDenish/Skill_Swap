@@ -32,6 +32,9 @@ public class ResourceItem {
 
     private String skillName;
 
+  @Column(name = "skill_tag")
+  private String skillTag;
+
     @Enumerated(EnumType.STRING)
     private ResourceType type;
 
@@ -47,6 +50,14 @@ public class ResourceItem {
     private String contentType;
 
     private Long sizeBytes;
+
+  private Integer version = 1;
+
+  @Column(name = "is_public")
+  private Boolean isPublic = false;
+
+  @Column(name = "view_count")
+  private Long viewCount = 0L;
 
     @CreatedDate
     private LocalDateTime createdAt;

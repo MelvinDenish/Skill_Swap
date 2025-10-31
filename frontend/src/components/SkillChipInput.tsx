@@ -21,12 +21,12 @@ export default function SkillChipInput({ skills, onChange, placeholder }: Props)
   };
 
   return (
-    <div className="border border-gray-300 rounded-lg p-3">
+    <div className="border border-gray-300 dark:border-neutral-800 dark:bg-neutral-900/50 dark:text-neutral-100 rounded-lg p-3">
       <div className="flex flex-wrap gap-2 mb-2">
         {skills.map(skill => (
-          <span key={skill} className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full flex items-center gap-2">
+          <span key={skill} className="border px-3 py-1 rounded-full flex items-center gap-2 bg-transparent text-gray-700 dark:bg-transparent text-secondary">
             {skill}
-            <button onClick={() => removeSkill(skill)} className="text-purple-600 hover:text-purple-800">×</button>
+            <button onClick={() => removeSkill(skill)} className="text-gray-500 text-tertiary hover:text-gray-700 dark:hover:text-secondary">×</button>
           </span>
         ))}
       </div>
@@ -37,9 +37,9 @@ export default function SkillChipInput({ skills, onChange, placeholder }: Props)
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addSkill())}
           placeholder={placeholder}
-          className="flex-1 border-none outline-none"
+          className="flex-1 border-none outline-none bg-transparent dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500"
         />
-        <button onClick={addSkill} className="bg-purple-600 text-white px-4 py-1 rounded-lg hover:bg-purple-700">
+        <button onClick={addSkill} className="btn-outline px-3 py-1 text-sm rounded-lg">
           Add
         </button>
       </div>
