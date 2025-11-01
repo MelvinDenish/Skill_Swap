@@ -4,6 +4,8 @@ import Navbar from '../components/Navbar';
 import { reviewAPI, sessionAPI, userAPI } from '../services/api';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '../store/authStore';
+import { Loader2, Calendar, Clock, Star } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 interface ReviewItem {
   id: string;
@@ -23,15 +25,10 @@ export default function UserProfile() {
   const [reviews, setReviews] = useState<ReviewItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // session form
   const [skillTopic, setSkillTopic] = useState('');
   const [scheduledTime, setScheduledTime] = useState('');
   const [duration, setDuration] = useState(60);
   const [isTeacher, setIsTeacher] = useState(false);
-
-  // review form
-  const [rating, setRating] = useState(5);
-  const [comment, setComment] = useState('');
 
   useEffect(() => {
     if (!id) return;
@@ -43,7 +40,7 @@ export default function UserProfile() {
         ]);
         setProfile(userData);
         setReviews(reviewsData);
-      } catch (e) {
+      } catch {
         toast.error('Failed to load profile');
       } finally {
         setLoading(false);
@@ -66,112 +63,216 @@ export default function UserProfile() {
         isTeacher,
       });
       toast.success('Session request sent');
-    } catch (e) {
+    } catch {
       toast.error('Failed to create session');
     }
   };
 
-  const submitReview = async () => {
-    if (!id) return;
-    try {
-      // Reviews are tied to sessions, but we allow user to rate after completing sessions from Sessions page typically.
-      // For simplicity, we do not create a new review here without a session; keep UI display-only for reviews.
-      toast.error('Please leave a review from the session completion flow.');
-    } catch {
-      // noop
-    }
-  };
+  if (loading)
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-neutral-950">
+        <Loader2 className="animate-spin w-8 h-8 text-indigo-600 mb-3" />
+        <p className="text-gray-600 dark:text-gray-400">Loading profile...</p>
+      </div>
+    );
 
-  if (loading) return (
-    <div className="min-h-screen bg-gray-50 dark:bg-neutral-950"><Navbar /><div className="container mx-auto px-4 py-8">Loading...</div></div>
-  );
-
-  if (!profile) return (
-    <div className="min-h-screen bg-gray-50 dark:bg-neutral-950"><Navbar /><div className="container mx-auto px-4 py-8">User not found</div></div>
-  );
+  if (!profile)
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-neutral-950">
+        <Navbar />
+        <p className="text-gray-600 dark:text-gray-400">User not found</p>
+      </div>
+    );
 
   const canBook = user && user.id !== profile.id;
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-neutral-950">
       <Navbar />
-      <div className="container mx-auto px-4 py-8 max-w-5xl">
-        <div className="bg-white dark:bg-neutral-900 dark:border dark:border-neutral-800 rounded-xl shadow p-6 flex flex-col md:flex-row gap-6">
-          <img src={profile.profilePictureUrl || '/default-avatar.svg'} className="w-32 h-32 rounded-full" />
-          <div className="flex-1">
-            <h1 className="text-3xl font-bold">{profile.name}</h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-2">{profile.bio || 'No bio yet'}</p>
-            <div className="flex gap-6 mt-4 text-sm">
-              <div><span className="font-semibold">Level:</span> {profile.level}</div>
-              <div><span className="font-semibold">Rating:</span> {profile.rating?.toFixed(1)} ⭐</div>
-              <div><span className="font-semibold">Sessions:</span> {profile.completedSessions}</div>
+      <div className="container mx-auto px-4 py-10 max-w-6xl space-y-8">
+        {/* Profile Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="bg-white dark:bg-neutral-900 rounded-2xl shadow-md p-6 flex flex-col md:flex-row gap-6"
+        >
+          <img
+            src={profile.profilePictureUrl || '/default-avatar.svg'}
+            className="w-32 h-32 rounded-full object-cover border-2 border-indigo-500"
+            alt="Profile"
+          />
+          <div className="flex-1 space-y-2">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+              {profile.name}
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400 italic">
+              {profile.bio || 'No bio available.'}
+            </p>
+            <div className="flex flex-wrap gap-4 mt-3 text-sm">
+              <span className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full">
+                Level: {profile.level || 'N/A'}
+              </span>
+              <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full flex items-center gap-1">
+                <Star className="w-4 h-4 fill-yellow-500" />{' '}
+                {profile.rating?.toFixed(1) || '0.0'}
+              </span>
+              <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full">
+                {profile.completedSessions || 0} Sessions
+              </span>
             </div>
-            <div className="mt-4">
-              <div className="font-semibold">Availability:</div>
-              <div className="text-gray-700 dark:text-gray-300">{profile.availability || 'Not specified'}</div>
+            <div className="pt-3">
+              <p className="font-semibold">Availability:</p>
+              <p className="text-gray-700 dark:text-gray-300">
+                {profile.availability || 'Not specified'}
+              </p>
             </div>
+          </div>
+        </motion.div>
+
+        {/* Skills */}
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-md p-6">
+            <h2 className="text-lg font-semibold mb-3">Skills Offered</h2>
+            {profile.skillsOffered?.length ? (
+              <div className="flex flex-wrap gap-2">
+                {profile.skillsOffered.map((s: string) => (
+                  <span
+                    key={s}
+                    className="px-3 py-1 bg-indigo-50 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300 rounded-full text-sm"
+                  >
+                    {s}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-500">No skills listed</p>
+            )}
+          </div>
+
+          <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-md p-6">
+            <h2 className="text-lg font-semibold mb-3">Skills Wanted</h2>
+            {profile.skillsWanted?.length ? (
+              <div className="flex flex-wrap gap-2">
+                {profile.skillsWanted.map((s: string) => (
+                  <span
+                    key={s}
+                    className="px-3 py-1 bg-violet-50 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300 rounded-full text-sm"
+                  >
+                    {s}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-500">No skills listed</p>
+            )}
           </div>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6 mt-6">
-          <div className="bg-white dark:bg-neutral-900 dark:border dark:border-neutral-800 rounded-xl shadow p-6">
-            <h2 className="text-xl font-semibold mb-3">Skills Offered</h2>
-            <div className="flex flex-wrap gap-2">
-              {(profile.skillsOffered || []).map((s: string) => (
-                <span key={s} className="border border-gray-300 text-gray-700 bg-transparent dark:border-neutral-800 text-secondary px-2 py-1 rounded text-sm">{s}</span>
-              ))}
-            </div>
-          </div>
-          <div className="bg-white dark:bg-neutral-900 dark:border dark:border-neutral-800 rounded-xl shadow p-6">
-            <h2 className="text-xl font-semibold mb-3">Skills Wanted</h2>
-            <div className="flex flex-wrap gap-2">
-              {(profile.skillsWanted || []).map((s: string) => (
-                <span key={s} className="border border-gray-300 text-gray-700 bg-transparent dark:border-neutral-800 text-secondary px-2 py-1 rounded text-sm">{s}</span>
-              ))}
-            </div>
-          </div>
-        </div>
-
+        {/* Session Request Form */}
         {canBook && (
-          <div className="bg-white dark:bg-neutral-900 dark:border dark:border-neutral-800 rounded-xl shadow p-6 mt-6">
-            <h2 className="text-xl font-semibold mb-4">Request a Session</h2>
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="bg-white dark:bg-neutral-900 rounded-2xl shadow-md p-6"
+          >
+            <h2 className="text-lg font-semibold mb-4">
+              Request a Learning Session
+            </h2>
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Skill Topic</label>
-                <input value={skillTopic} onChange={(e) => setSkillTopic(e.target.value)} className="w-full border dark:border-neutral-800 dark:bg-neutral-900/50 dark:text-neutral-100 rounded p-2" placeholder="e.g., React Basics" />
+                <label className="block text-sm font-medium mb-1">
+                  Skill Topic
+                </label>
+                <input
+                  value={skillTopic}
+                  onChange={(e) => setSkillTopic(e.target.value)}
+                  className="w-full border rounded-lg p-2 dark:bg-neutral-800 dark:border-neutral-700"
+                  placeholder="e.g., React Basics"
+                />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Date & Time</label>
-                <input type="datetime-local" value={scheduledTime} onChange={(e) => setScheduledTime(e.target.value)} className="w-full border dark:border-neutral-800 dark:bg-neutral-900/50 dark:text-neutral-100 rounded p-2" />
+                <label className="block text-sm font-medium mb-1">
+                  Date & Time
+                </label>
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                  <input
+                    type="datetime-local"
+                    value={scheduledTime}
+                    onChange={(e) => setScheduledTime(e.target.value)}
+                    className="w-full pl-10 border rounded-lg p-2 dark:bg-neutral-800 dark:border-neutral-700"
+                  />
+                </div>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Duration (minutes)</label>
-                <input type="number" value={duration} onChange={(e) => setDuration(parseInt(e.target.value || '60', 10))} className="w-full border dark:border-neutral-800 dark:bg-neutral-900/50 dark:text-neutral-100 rounded p-2" />
+                <label className="block text-sm font-medium mb-1">
+                  Duration (minutes)
+                </label>
+                <div className="relative">
+                  <Clock className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                  <input
+                    type="number"
+                    value={duration}
+                    onChange={(e) =>
+                      setDuration(parseInt(e.target.value || '60', 10))
+                    }
+                    className="w-full pl-10 border rounded-lg p-2 dark:bg-neutral-800 dark:border-neutral-700"
+                  />
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <input id="isTeacher" type="checkbox" checked={isTeacher} onChange={(e) => setIsTeacher(e.target.checked)} />
-                <label htmlFor="isTeacher">I will teach</label>
+              <div className="flex items-center gap-2 mt-2">
+                <input
+                  id="isTeacher"
+                  type="checkbox"
+                  checked={isTeacher}
+                  onChange={(e) => setIsTeacher(e.target.checked)}
+                />
+                <label htmlFor="isTeacher" className="text-sm">
+                  I will teach
+                </label>
               </div>
             </div>
-            <button onClick={createSession} className="mt-4 bg-gradient-to-r from-indigo-600 to-violet-600 text-white py-2 px-4 rounded-lg dark:bg-none dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:text-neutral-100 dark:border dark:border-neutral-700">Send Request</button>
-          </div>
+            <button
+              onClick={createSession}
+              className="mt-5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:opacity-90 transition text-white font-medium py-2 px-4 rounded-lg"
+            >
+              Send Request
+            </button>
+          </motion.div>
         )}
 
-        <div className="bg-white dark:bg-neutral-900 dark:border dark:border-neutral-800 rounded-xl shadow p-6 mt-6">
-          <h2 className="text-xl font-semibold mb-4">Reviews</h2>
+        {/* Reviews Section */}
+        <div className="bg-white dark:bg-neutral-900 rounded-2xl shadow-md p-6">
+          <h2 className="text-lg font-semibold mb-4">Reviews</h2>
           {reviews.length === 0 ? (
-            <div className="text-gray-600 dark:text-gray-400">No reviews yet</div>
+            <p className="text-gray-500 dark:text-gray-400">No reviews yet</p>
           ) : (
             <div className="space-y-4">
-              {reviews.map(r => (
-                <div key={r.id} className="border-b dark:border-neutral-800 pb-3">
+              {reviews.map((r) => (
+                <div
+                  key={r.id}
+                  className="border-b border-gray-100 dark:border-neutral-800 pb-4"
+                >
                   <div className="flex items-center gap-3">
-                    <img src={r.reviewerProfilePictureUrl || '/default-avatar.svg'} className="w-8 h-8 rounded-full" />
-                    <div className="font-semibold">{r.reviewerName}</div>
-                    <div className="text-yellow-600">{'★'.repeat(r.rating)}{'☆'.repeat(5-r.rating)}</div>
+                    <img
+                      src={r.reviewerProfilePictureUrl || '/default-avatar.svg'}
+                      className="w-9 h-9 rounded-full object-cover"
+                    />
+                    <div>
+                      <div className="font-semibold">{r.reviewerName}</div>
+                      <div className="text-yellow-500 text-sm">
+                        {'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-gray-700 dark:text-gray-200 mt-2">{r.comment}</div>
-                  <div className="text-gray-400 dark:text-gray-500 text-xs mt-1">{new Date(r.createdAt).toLocaleString()}</div>
+                  <p className="text-gray-700 dark:text-gray-300 mt-2">
+                    {r.comment}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    {new Date(r.createdAt).toLocaleString()}
+                  </p>
                 </div>
               ))}
             </div>

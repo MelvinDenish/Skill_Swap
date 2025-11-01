@@ -2,6 +2,8 @@ import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { useThemeStore } from '../store/themeStore';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Menu, X, Sun, Moon, LogOut, User, Layers, Book, Users, Home } from 'lucide-react';
 
 export default function Navbar() {
   const { user, logout } = useAuthStore();
@@ -14,60 +16,136 @@ export default function Navbar() {
     navigate('/login');
   };
 
+  const links = [
+    { to: '/dashboard', label: 'Dashboard', icon: Home },
+    { to: '/matching', label: 'Find Matches', icon: Users },
+    { to: '/sessions', label: 'Sessions', icon: Layers },
+    { to: '/groups', label: 'Groups', icon: User },
+    { to: '/resources', label: 'Resources', icon: Book },
+    { to: '/profile', label: 'Profile', icon: User },
+  ];
+
+  const navLinkClass = ({ isActive }: { isActive: boolean }) =>
+    `flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+      isActive
+        ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-sm'
+        : 'text-gray-700 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-neutral-800'
+    }`;
+
   return (
-    <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur border-b border-gray-200 text-gray-700 dark:bg-neutral-900/80 dark:text-neutral-200 dark:border-neutral-800">
+    <nav className="sticky top-0 z-50 backdrop-blur bg-white/80 dark:bg-neutral-900/80 border-b border-gray-200 dark:border-neutral-800">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        <Link to="/dashboard" className="text-2xl font-bold logo" aria-label="Go to dashboard">
-          <span className="bg-gradient-to-r from-brand to-accent bg-clip-text text-transparent">SkillSwap</span>
+        {/* Logo */}
+        <Link
+          to="/dashboard"
+          className="text-2xl font-extrabold tracking-tight bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent"
+        >
+          SkillSwap
         </Link>
-        <div className="hidden md:flex gap-6 items-center">
-          <NavLink to="/dashboard" className={({isActive}) => `px-2 py-1 rounded-md transition-colors ${isActive ? 'text-brand bg-gray-100' : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'} nav-link ${isActive ? 'active' : ''}`}>Dashboard</NavLink>
-          <NavLink to="/matching" className={({isActive}) => `px-2 py-1 rounded-md transition-colors ${isActive ? 'text-brand bg-gray-100' : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'} nav-link ${isActive ? 'active' : ''}`}>Find Matches</NavLink>
-          <NavLink to="/sessions" className={({isActive}) => `px-2 py-1 rounded-md transition-colors ${isActive ? 'text-brand bg-gray-100' : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'} nav-link ${isActive ? 'active' : ''}`}>Sessions</NavLink>
-          <NavLink to="/groups" className={({isActive}) => `px-2 py-1 rounded-md transition-colors ${isActive ? 'text-brand bg-gray-100' : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'} nav-link ${isActive ? 'active' : ''}`}>Groups</NavLink>
-          <NavLink to="/resources" className={({isActive}) => `px-2 py-1 rounded-md transition-colors ${isActive ? 'text-brand bg-gray-100' : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'} nav-link ${isActive ? 'active' : ''}`}>Resources</NavLink>
-          <NavLink to="/profile" className={({isActive}) => `px-2 py-1 rounded-md transition-colors ${isActive ? 'text-brand bg-gray-100' : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'} nav-link ${isActive ? 'active' : ''}`}>Profile</NavLink>
-          <button onClick={toggle} className="px-3 py-1 rounded-lg text-sm border border-gray-300 hover:bg-gray-100 btn-outline dark:border-0">
-            {theme === 'dark' ? 'Light' : 'Dark'}
+
+        {/* Desktop Nav */}
+        <div className="hidden md:flex gap-4 items-center">
+          {links.map(({ to, label, icon: Icon }) => (
+            <NavLink key={to} to={to} className={navLinkClass}>
+              <Icon className="w-4 h-4" /> {label}
+            </NavLink>
+          ))}
+
+          <button
+            onClick={toggle}
+            className="p-2 rounded-lg border border-gray-300 hover:bg-gray-100 dark:border-neutral-700 dark:hover:bg-neutral-800 transition"
+            title="Toggle theme"
+          >
+            {theme === 'dark' ? (
+              <Sun className="w-5 h-5 text-yellow-400" />
+            ) : (
+              <Moon className="w-5 h-5 text-indigo-600" />
+            )}
           </button>
+
           {user && (
-            <button onClick={handleLogout} className="px-3 py-1 rounded-lg text-sm text-gray-700 border border-gray-300 hover:bg-gray-100 btn-ghost dark:border-0">
-              Logout
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-1 px-3 py-2 rounded-lg border border-gray-300 hover:bg-gray-100 dark:border-neutral-700 dark:hover:bg-neutral-800 text-sm transition"
+            >
+              <LogOut className="w-4 h-4" /> Logout
             </button>
           )}
         </div>
+
+        {/* Mobile Menu Button */}
         <button
-          className="md:hidden inline-flex items-center justify-center rounded-md p-2 text-gray-700 hover:bg-gray-100 dark:text-neutral-200 dark:hover:bg-neutral-800"
-          aria-label="Toggle navigation menu"
-          aria-expanded={open}
           onClick={() => setOpen(!open)}
+          className="md:hidden p-2 rounded-md hover:bg-gray-100 dark:hover:bg-neutral-800 transition"
+          aria-label="Toggle menu"
         >
-          <span className="sr-only">Open main menu</span>
-          ☰
+          {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
       </div>
-      {open && (
-        <div className="md:hidden border-t border-gray-200 dark:border-neutral-800 px-4 pb-4">
-          <div className="flex flex-col gap-2 pt-2">
-            <NavLink to="/dashboard" onClick={() => setOpen(false)} className={({isActive}) => `nav-link ${isActive ? 'active' : ''}`}>Dashboard</NavLink>
-            <NavLink to="/matching" onClick={() => setOpen(false)} className={({isActive}) => `nav-link ${isActive ? 'active' : ''}`}>Find Matches</NavLink>
-            <NavLink to="/sessions" onClick={() => setOpen(false)} className={({isActive}) => `nav-link ${isActive ? 'active' : ''}`}>Sessions</NavLink>
-            <NavLink to="/groups" onClick={() => setOpen(false)} className={({isActive}) => `nav-link ${isActive ? 'active' : ''}`}>Groups</NavLink>
-            <NavLink to="/resources" onClick={() => setOpen(false)} className={({isActive}) => `nav-link ${isActive ? 'active' : ''}`}>Resources</NavLink>
-            <NavLink to="/profile" onClick={() => setOpen(false)} className={({isActive}) => `nav-link ${isActive ? 'active' : ''}`}>Profile</NavLink>
-            <div className="flex gap-2 pt-2">
-              <button onClick={() => { toggle(); setOpen(false); }} className="px-3 py-2 rounded-lg text-sm border border-gray-300 hover:bg-gray-100 w-full btn-outline dark:border-0">
-                {theme === 'dark' ? 'Light' : 'Dark'}
-              </button>
-              {user && (
-                <button onClick={() => { handleLogout(); setOpen(false); }} className="px-3 py-2 rounded-lg text-sm border border-gray-300 hover:bg-gray-100 w-full btn-ghost dark:border-0">
-                  Logout
+
+      {/* Mobile Dropdown */}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="md:hidden border-t border-gray-200 dark:border-neutral-800 bg-white/95 dark:bg-neutral-900/95 backdrop-blur-sm"
+          >
+            <div className="flex flex-col px-4 py-3 space-y-2">
+              {links.map(({ to, label, icon: Icon }) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  onClick={() => setOpen(false)}
+                  className={({ isActive }) =>
+                    `flex items-center gap-2 px-3 py-2 rounded-lg ${
+                      isActive
+                        ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white'
+                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-neutral-800'
+                    }`
+                  }
+                >
+                  <Icon className="w-4 h-4" /> {label}
+                </NavLink>
+              ))}
+
+              <div className="flex gap-2 pt-3">
+                <button
+                  onClick={() => {
+                    toggle();
+                    setOpen(false);
+                  }}
+                  className="flex-1 flex items-center justify-center gap-1 border border-gray-300 dark:border-neutral-700 py-2 rounded-lg text-sm hover:bg-gray-100 dark:hover:bg-neutral-800 transition"
+                >
+                  {theme === 'dark' ? (
+                    <>
+                      <Sun className="w-4 h-4" /> Light
+                    </>
+                  ) : (
+                    <>
+                      <Moon className="w-4 h-4" /> Dark
+                    </>
+                  )}
                 </button>
-              )}
+
+                {user && (
+                  <button
+                    onClick={() => {
+                      handleLogout();
+                      setOpen(false);
+                    }}
+                    className="flex-1 flex items-center justify-center gap-1 border border-gray-300 dark:border-neutral-700 py-2 rounded-lg text-sm hover:bg-gray-100 dark:hover:bg-neutral-800 transition"
+                  >
+                    <LogOut className="w-4 h-4" /> Logout
+                  </button>
+                )}
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </nav>
   );
 }
