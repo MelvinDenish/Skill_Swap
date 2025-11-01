@@ -22,6 +22,9 @@ public interface ResourceItemRepository extends JpaRepository<ResourceItem, UUID
     @Query("select r from ResourceItem r order by r.createdAt desc")
     List<ResourceItem> findAllOrderByCreatedAtDesc();
 
+    @Query("select r from ResourceItem r where r.id not in (select l.resource.id from GroupResourceLink l) order by r.createdAt desc")
+    List<ResourceItem> findPublicOrderByCreatedAtDesc();
+
     @Query("select coalesce(sum(r.sizeBytes),0) from ResourceItem r where r.owner.id = :ownerId and r.createdAt >= :start and r.createdAt < :end")
     Long sumSizeByOwnerInRange(@Param("ownerId") UUID ownerId, @Param("start") java.time.LocalDateTime start, @Param("end") java.time.LocalDateTime end);
 }

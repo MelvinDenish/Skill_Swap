@@ -9,8 +9,10 @@ import {
   sendGroupTyping,
 } from "../services/ws";
 import Navbar from "../components/Navbar";
+import LoadingSpinner from "../components/LoadingSpinner";
 import { motion } from "framer-motion";
-import { Users, MessageSquare, BookOpen, CalendarDays } from "lucide-react";
+import { Users, MessageSquare, BookOpen } from "lucide-react";
+import toast from "react-hot-toast";
 
 export default function GroupDetail() {
   const { id } = useParams();
@@ -24,15 +26,21 @@ export default function GroupDetail() {
   const listRef = useRef<HTMLDivElement>(null);
   const seenIds = useRef<Set<string>>(new Set());
   const [tab, setTab] = useState<
-    "Chat" | "Members" | "Resources" | "Calendar"
+    "Chat" | "Members" | "Resources"
   >("Chat");
   const [groupResources, setGroupResources] = useState<any[]>([]);
   const [myResources, setMyResources] = useState<any[]>([]);
   const [selectedResourceId, setSelectedResourceId] = useState<string>("");
-  const [sessions, setSessions] = useState<any[]>([]);
-  const [scheduleAt, setScheduleAt] = useState<string>("");
-  const [scheduleDuration, setScheduleDuration] = useState<number>(60);
   const [isMember, setIsMember] = useState<boolean>(false);
+  const [onlineUserIds, setOnlineUserIds] = useState<string[]>([]);
+
+  // Resources create/share state
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [linkTitle, setLinkTitle] = useState("");
+  const [linkUrl, setLinkUrl] = useState("");
+  const [linkDesc, setLinkDesc] = useState("");
+  const [linkSkill, setLinkSkill] = useState("");
 
   const load = async () => {
     if (!id) return;
@@ -109,12 +117,34 @@ export default function GroupDetail() {
         setTyping(p?.user || "Someone");
         if (typingTimer.current) window.clearTimeout(typingTimer.current);
         typingTimer.current = window.setTimeout(() => setTyping(null), 1500);
-      }
+      },
+      (presence) => {
+        try {
+          const arr = presence?.onlineUserIds || [];
+          setOnlineUserIds(arr.map((x: any) => String(x)));
+        } catch {}
+      },
+      () => {}
     );
     return () => {
       disconnectGroup();
     };
   }, [id, token, isMember]);
+
+  const refreshGroupResources = async () => {
+    if (!id) return;
+    try {
+      const { data } = await groupsAPI.resources(id);
+      setGroupResources(data || []);
+    } catch {}
+  };
+
+  const refreshMyResources = async () => {
+    try {
+      const { data } = await resourceAPI.my();
+      setMyResources(data || []);
+    } catch {}
+  };
 
   useEffect(() => {
     if (!id) return;
@@ -125,13 +155,15 @@ export default function GroupDetail() {
           setMyResources(my.data || []);
         })
         .catch(() => {});
-    } else if (tab === "Calendar") {
-      groupsAPI
-        .sessions(id)
-        .then(({ data }) => setSessions(data || []))
-        .catch(() => {});
     }
   }, [tab, id]);
+
+  useEffect(() => {
+    if (!id) return;
+    groupsAPI.presence(id).then(({ data }) => {
+      setOnlineUserIds((data || []).map((x: any) => String(x)));
+    }).catch(() => {});
+  }, [id]);
 
   const send = async () => {
     if (!id || !token || !text.trim()) return;
@@ -164,11 +196,71 @@ export default function GroupDetail() {
     }, 50);
   };
 
+  // Share an existing resource from "My Resources"
+  const shareExisting = async () => {
+    if (!id || !selectedResourceId) return;
+    const ok = await ensureMember();
+    if (!ok) return;
+    try {
+      await groupsAPI.shareResource(id, selectedResourceId);
+      setSelectedResourceId("");
+      await refreshGroupResources();
+      toast.success("Shared to group");
+    } catch {
+      toast.error("Failed to share");
+    }
+  };
+
+  // Upload a new file then share to group
+  const uploadToGroup = async () => {
+    if (!id || !selectedFile) return;
+    const ok = await ensureMember();
+    if (!ok) return;
+    setUploading(true);
+    try {
+      const { data } = await resourceAPI.upload(selectedFile, undefined, linkSkill || undefined);
+      const resourceId = data?.id;
+      if (resourceId) {
+        await groupsAPI.shareResource(id, resourceId);
+      }
+      setSelectedFile(null);
+      await Promise.all([refreshGroupResources(), refreshMyResources()]);
+      toast.success("File uploaded and shared");
+    } catch {
+      toast.error("Upload or share failed");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // Create a link then share to group
+  const createLinkToGroup = async () => {
+    if (!id || !linkTitle || !linkUrl) return;
+    const ok = await ensureMember();
+    if (!ok) return;
+    try {
+      const { data } = await resourceAPI.link({ title: linkTitle, url: linkUrl, description: linkDesc || undefined, skillName: linkSkill || undefined });
+      const resourceId = data?.id;
+      if (resourceId) {
+        await groupsAPI.shareResource(id, resourceId);
+      }
+      setLinkTitle("");
+      setLinkUrl("");
+      setLinkDesc("");
+      await Promise.all([refreshGroupResources(), refreshMyResources()]);
+      toast.success("Link added and shared");
+    } catch {
+      toast.error("Failed to add link");
+    }
+  };
+
   if (!group)
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-neutral-950">
         <Navbar />
-        <div className="container mx-auto p-4 text-center">Loading...</div>
+        <div className="container mx-auto p-4">
+          <LoadingSpinner />
+        </div>
       </div>
     );
 
@@ -195,7 +287,6 @@ export default function GroupDetail() {
             { name: "Chat", icon: MessageSquare },
             { name: "Members", icon: Users },
             { name: "Resources", icon: BookOpen },
-            { name: "Calendar", icon: CalendarDays },
           ].map((t) => (
             <button
               key={t.name}
@@ -282,20 +373,148 @@ export default function GroupDetail() {
                 {members.map((m: any) => (
                   <div
                     key={m.userId}
-                    className="flex justify-between text-sm text-gray-700 dark:text-gray-300"
+                    className="flex justify-between items-center text-sm text-gray-700 dark:text-gray-300"
                   >
-                    <span>{m.name}</span>
+                    <span className="flex items-center gap-2">
+                      <span className={`inline-block w-2 h-2 rounded-full ${onlineUserIds.includes(String(m.userId)) ? 'bg-green-500' : 'bg-gray-400'}`}></span>
+                      {m.name}
+                    </span>
                     <span className="text-gray-500 dark:text-gray-400">
                       {m.role}
                     </span>
                   </div>
                 ))}
+                {members.length === 0 && (
+                  <div className="text-sm text-gray-500 dark:text-gray-400">No members found.</div>
+                )}
               </div>
             </div>
           </div>
         )}
 
-        {/* Other tabs remain (Members, Resources, Calendar) — you can keep same structure but add rounded cards, consistent gradient buttons, and spacing */}
+        {/* === MEMBERS TAB === */}
+        {tab === "Members" && (
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="p-5 border dark:border-neutral-800 rounded-2xl bg-white dark:bg-neutral-900 shadow">
+              <div className="font-semibold mb-3">Members</div>
+              <div className="divide-y dark:divide-neutral-800">
+                {members.map((m: any) => (
+                  <div key={m.userId} className="py-2 flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <span className={`inline-block w-2 h-2 rounded-full ${onlineUserIds.includes(String(m.userId)) ? 'bg-green-500' : 'bg-gray-400'}`}></span>
+                      <span>{m.name}</span>
+                    </div>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">{m.role}</span>
+                  </div>
+                ))}
+                {members.length === 0 && (
+                  <div className="text-sm text-gray-500 dark:text-gray-400 py-4">No members yet.</div>
+                )}
+              </div>
+            </div>
+            <div className="p-5 border dark:border-neutral-800 rounded-2xl bg-white dark:bg-neutral-900 shadow">
+              <div className="font-semibold mb-3">Online Now</div>
+              <div className="flex flex-wrap gap-2">
+                {members.filter((m: any) => onlineUserIds.includes(String(m.userId))).map((m: any) => (
+                  <span key={m.userId} className="px-3 py-1 rounded-full bg-green-100 text-green-700 dark:bg-green-800/30 dark:text-green-300 text-sm">{m.name}</span>
+                ))}
+                {members.filter((m: any) => onlineUserIds.includes(String(m.userId))).length === 0 && (
+                  <div className="text-sm text-gray-500 dark:text-gray-400">No one online.</div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* === RESOURCES TAB === */}
+        {tab === "Resources" && (
+          <div className="space-y-6">
+            {!isMember ? (
+              <div className="p-6 border dark:border-neutral-800 rounded-2xl bg-white dark:bg-neutral-900 text-gray-700 dark:text-neutral-200">
+                You need to join this group to access resources.
+              </div>
+            ) : (
+              <>
+                <div className="grid md:grid-cols-2 gap-6">
+                  {/* Upload file to group */}
+                  <div className="p-5 border dark:border-neutral-800 rounded-2xl bg-white dark:bg-neutral-900 shadow">
+                    <div className="font-semibold mb-3">Upload a file to this group</div>
+                    <input type="file" onChange={(e) => setSelectedFile(e.target.files?.[0] || null)} className="w-full mb-2" />
+                    <input value={linkSkill} onChange={(e) => setLinkSkill(e.target.value)} placeholder="Skill (optional)" className="w-full border rounded-lg p-2 dark:border-neutral-800 dark:bg-neutral-900/50 mb-3" />
+                    <button onClick={uploadToGroup} disabled={!selectedFile || uploading} className="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:opacity-90 disabled:opacity-60">
+                      {uploading ? 'Uploading...' : selectedFile ? `Upload ${selectedFile.name}` : 'Choose a file'}
+                    </button>
+                  </div>
+
+                  {/* Add link to group */}
+                  <div className="p-5 border dark:border-neutral-800 rounded-2xl bg-white dark:bg-neutral-900 shadow">
+                    <div className="font-semibold mb-3">Add a link to this group</div>
+                    <input value={linkTitle} onChange={(e) => setLinkTitle(e.target.value)} placeholder="Title" className="w-full border rounded-lg p-2 dark:border-neutral-800 dark:bg-neutral-900/50 mb-2" />
+                    <input value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} placeholder="https://example.com/resource" className="w-full border rounded-lg p-2 dark:border-neutral-800 dark:bg-neutral-900/50 mb-2" />
+                    <textarea value={linkDesc} onChange={(e) => setLinkDesc(e.target.value)} placeholder="Description (optional)" rows={2} className="w-full border rounded-lg p-2 dark:border-neutral-800 dark:bg-neutral-900/50 mb-2" />
+                    <input value={linkSkill} onChange={(e) => setLinkSkill(e.target.value)} placeholder="Skill (optional)" className="w-full border rounded-lg p-2 dark:border-neutral-800 dark:bg-neutral-900/50 mb-3" />
+                    <button onClick={createLinkToGroup} className="px-4 py-2 rounded-lg bg-green-600 text-white hover:opacity-90">
+                      Add Link
+                    </button>
+                  </div>
+                </div>
+
+                <div className="p-5 border dark:border-neutral-800 rounded-2xl bg-white dark:bg-neutral-900 shadow">
+                  <div className="font-semibold mb-3">Share one of your existing resources</div>
+                  <div className="flex gap-2">
+                    <select value={selectedResourceId} onChange={(e) => setSelectedResourceId(e.target.value)} className="flex-1 border rounded-lg p-2 dark:border-neutral-800 dark:bg-neutral-900/50">
+                      <option value="">Select a resource...</option>
+                      {myResources.map((r: any) => (
+                        <option key={r.id} value={r.id}>
+                          {(r.title || r.url || r.fileKey || 'Untitled')} • {r.type}
+                        </option>
+                      ))}
+                    </select>
+                    <button onClick={shareExisting} disabled={!selectedResourceId} className="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:opacity-90 disabled:opacity-60">
+                      Share
+                    </button>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto border dark:border-neutral-800 rounded-2xl bg-white dark:bg-neutral-900 shadow">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-left border-b dark:border-neutral-800">
+                        <th className="py-2 px-3">Title</th>
+                        <th className="py-2 px-3">Type</th>
+                        <th className="py-2 px-3">Skill</th>
+                        <th className="py-2 px-3">Added</th>
+                        <th className="py-2 px-3">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {groupResources.map((r: any) => (
+                        <tr key={r.id} className="border-b last:border-0 dark:border-neutral-800">
+                          <td className="py-2 px-3">{r.title || (r.type === 'LINK' ? (r.url || 'Link') : 'File')}</td>
+                          <td className="py-2 px-3">{r.type}</td>
+                          <td className="py-2 px-3">{r.skillName || '-'}</td>
+                          <td className="py-2 px-3">{r.createdAt ? new Date(r.createdAt).toLocaleString() : '-'}</td>
+                          <td className="py-2 px-3">
+                            {r.type === 'LINK' ? (
+                              <a href={r.url || '#'} target="_blank" rel="noreferrer" className="px-2 py-1 rounded bg-neutral-200 dark:bg-neutral-800 inline-block">Open</a>
+                            ) : (
+                              <a href={resourceAPI.downloadUrl(r.id)} className="px-2 py-1 rounded bg-neutral-200 dark:bg-neutral-800 inline-block">Download</a>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                      {groupResources.length === 0 && (
+                        <tr><td className="py-4 text-gray-500 dark:text-gray-400" colSpan={5}>No group resources yet.</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Other tabs remain (Members, Resources) — structure kept consistent with the app */}
       </div>
     </div>
   );

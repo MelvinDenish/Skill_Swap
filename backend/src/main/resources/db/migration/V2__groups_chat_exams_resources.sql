@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS study_groups (
     name VARCHAR(120) NOT NULL,
     description TEXT,
     related_skill VARCHAR(100),
-    creator_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    creator_id UUID NOT NULL,
     max_members INT NOT NULL DEFAULT 10,
     member_count INT NOT NULL DEFAULT 0,
     is_private BOOLEAN NOT NULL DEFAULT FALSE,
@@ -12,74 +12,60 @@ CREATE TABLE IF NOT EXISTS study_groups (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP
 );
-CREATE INDEX IF NOT EXISTS idx_study_groups_skill ON study_groups(related_skill);
-CREATE INDEX IF NOT EXISTS idx_study_groups_member_count ON study_groups(member_count DESC);
 
 CREATE TABLE IF NOT EXISTS group_members (
     id UUID PRIMARY KEY,
-    group_id UUID NOT NULL REFERENCES study_groups(id) ON DELETE CASCADE,
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    group_id UUID NOT NULL,
+    user_id UUID NOT NULL,
     role VARCHAR(20) NOT NULL DEFAULT 'MEMBER',
-    joined_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE (group_id, user_id)
+    joined_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
-CREATE INDEX IF NOT EXISTS idx_group_members_group ON group_members(group_id);
 
 CREATE TABLE IF NOT EXISTS group_messages (
     id UUID PRIMARY KEY,
-    group_id UUID NOT NULL REFERENCES study_groups(id) ON DELETE CASCADE,
-    sender_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    group_id UUID NOT NULL,
+    sender_id UUID NOT NULL,
     message_text TEXT NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
-CREATE INDEX IF NOT EXISTS idx_group_messages_group_time ON group_messages(group_id, created_at DESC);
 
 CREATE TABLE IF NOT EXISTS group_resources (
     id UUID PRIMARY KEY,
-    group_id UUID NOT NULL REFERENCES study_groups(id) ON DELETE CASCADE,
-    resource_item_id UUID NOT NULL REFERENCES resource_items(id) ON DELETE CASCADE,
+    group_id UUID NOT NULL,
+    resource_item_id UUID NOT NULL,
     added_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
-CREATE INDEX IF NOT EXISTS idx_group_resources_group ON group_resources(group_id);
 
 CREATE TABLE IF NOT EXISTS group_sessions (
     id UUID PRIMARY KEY,
-    group_id UUID NOT NULL REFERENCES study_groups(id) ON DELETE CASCADE,
+    group_id UUID NOT NULL,
     scheduled_time TIMESTAMP NOT NULL,
     duration INT NOT NULL DEFAULT 60,
-    created_by UUID NOT NULL REFERENCES users(id) ON DELETE SET NULL,
+    created_by UUID NOT NULL,
     meeting_link TEXT,
-    video_room VARCHAR(120),
-    whiteboard_room VARCHAR(120),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Feature 3: 1-1 Conversations & Messages
 CREATE TABLE IF NOT EXISTS conversations (
     id UUID PRIMARY KEY,
-    user1_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    user2_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user1_id UUID NOT NULL,
+    user2_id UUID NOT NULL,
     pair_key VARCHAR(120) NOT NULL,
     last_message_time TIMESTAMP,
     UNIQUE (pair_key)
 );
-CREATE INDEX IF NOT EXISTS idx_conversations_last_time ON conversations(last_message_time DESC);
 
 CREATE TABLE IF NOT EXISTS messages (
     id UUID PRIMARY KEY,
-    conversation_id UUID NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
-    sender_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    conversation_id UUID NOT NULL,
+    sender_id UUID NOT NULL,
     message_text TEXT NOT NULL,
     is_read BOOLEAN NOT NULL DEFAULT FALSE,
     read_at TIMESTAMP,
     deleted BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
-CREATE INDEX IF NOT EXISTS idx_messages_conv_time ON messages(conversation_id, created_at DESC);
-
--- Feature 4: video/whiteboard on sessions
-ALTER TABLE skill_sessions ADD COLUMN IF NOT EXISTS video_room VARCHAR(120);
-ALTER TABLE skill_sessions ADD COLUMN IF NOT EXISTS whiteboard_room VARCHAR(120);
 
 -- Feature 5: Exams & Interview prep
 CREATE TABLE IF NOT EXISTS exam_questions (
@@ -93,11 +79,34 @@ CREATE TABLE IF NOT EXISTS exam_questions (
     explanation TEXT,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Add indexes
+CREATE INDEX IF NOT EXISTS idx_study_groups_skill ON study_groups(related_skill);
+CREATE INDEX IF NOT EXISTS idx_study_groups_member_count ON study_groups(member_count DESC);
+CREATE INDEX IF NOT EXISTS idx_group_members_group ON group_members(group_id);
+CREATE INDEX IF NOT EXISTS idx_group_messages_group_time ON group_messages(group_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_group_resources_group ON group_resources(group_id);
+CREATE INDEX IF NOT EXISTS idx_conversations_last_time ON conversations(last_message_time DESC);
+CREATE INDEX IF NOT EXISTS idx_messages_conv_time ON messages(conversation_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_exam_questions_skill_diff ON exam_questions(skill, difficulty_level);
 
-CREATE TABLE IF NOT EXISTS exam_attempts (
-    id UUID PRIMARY KEY,
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+-- Add foreign key constraints
+ALTER TABLE group_members 
+    ADD CONSTRAINT fk_group_members_group FOREIGN KEY (group_id) REFERENCES study_groups(id),
+    ADD CONSTRAINT fk_group_members_user FOREIGN KEY (user_id) REFERENCES users(id),
+    ADD CONSTRAINT uk_group_members_group_user UNIQUE (group_id, user_id);
+
+ALTER TABLE group_messages
+    ADD CONSTRAINT fk_group_messages_group FOREIGN KEY (group_id) REFERENCES study_groups(id),
+    ADD CONSTRAINT fk_group_messages_sender FOREIGN KEY (sender_id) REFERENCES users(id);
+
+ALTER TABLE group_resources
+    ADD CONSTRAINT fk_group_resources_group FOREIGN KEY (group_id) REFERENCES study_groups(id),
+    ADD CONSTRAINT fk_group_resources_item FOREIGN KEY (resource_item_id) REFERENCES resource_items(id);
+
+ALTER TABLE group_sessions
+    ADD CONSTRAINT fk_group_sessions_group FOREIGN KEY (group_id) REFERENCES study_groups(id),
+    ADD CONSTRAINT fk_group_sessions_creator FOREIGN KEY (created_by) REFERENCES users(id);
     question_id UUID NOT NULL REFERENCES exam_questions(id) ON DELETE CASCADE,
     user_answer VARCHAR(200),
     is_correct BOOLEAN NOT NULL DEFAULT FALSE,

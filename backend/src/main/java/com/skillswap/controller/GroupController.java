@@ -26,6 +26,7 @@ import java.time.LocalDateTime;
 public class GroupController {
 
     @Autowired private GroupService groupService;
+    @Autowired private com.skillswap.service.GroupPresenceService groupPresenceService;
     @Autowired private UserRepository userRepository;
     @Autowired(required = false) private SimpMessagingTemplate messagingTemplate;
 
@@ -95,6 +96,11 @@ public class GroupController {
     @GetMapping("/{id}/members")
     public ResponseEntity<java.util.List<GroupMemberDTO>> members(@PathVariable UUID id) {
         return ResponseEntity.ok(groupService.listMembers(id));
+    }
+
+    @GetMapping("/{id}/presence")
+    public ResponseEntity<java.util.Set<java.util.UUID>> presence(@PathVariable UUID id) {
+        return ResponseEntity.ok(groupPresenceService.getOnlineUserIds(id));
     }
 
     @GetMapping("/{id}/resources")

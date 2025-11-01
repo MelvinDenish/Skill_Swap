@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import Navbar from '../components/Navbar';
+import LoadingSpinner from '../components/LoadingSpinner';
 import { resourceAPI } from '../services/api';
 import { ResourceItem } from '../types';
 import toast from 'react-hot-toast';
@@ -180,11 +181,8 @@ export default function Resources() {
               )}
               {loading && (
                 <tr>
-                  <td
-                    colSpan={5}
-                    className="py-8 text-center text-gray-500 dark:text-gray-400"
-                  >
-                    Loading resources...
+                  <td colSpan={5}>
+                    <LoadingSpinner />
                   </td>
                 </tr>
               )}

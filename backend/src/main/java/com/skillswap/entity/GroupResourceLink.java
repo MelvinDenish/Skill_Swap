@@ -26,5 +26,21 @@ public class GroupResourceLink {
     @JoinColumn(name = "resource_item_id")
     private ResourceItem resource;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "shared_by")
+    private User sharedBy;
+
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+
+    @Column(name = "added_at")
     private LocalDateTime addedAt;
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        if (addedAt == null) {
+            addedAt = createdAt;
+        }
+    }
 }

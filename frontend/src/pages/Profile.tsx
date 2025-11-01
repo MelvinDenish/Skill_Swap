@@ -58,6 +58,13 @@ export default function Profile() {
     }
   };
 
+  const refreshMe = async () => {
+    try {
+      const { data } = await userAPI.getMe();
+      if (token) setAuth(token, data);
+    } catch {}
+  };
+
   const startTwoFASetup = async () => {
     try {
       const { data } = await twoFAAPI.setup();
@@ -74,6 +81,7 @@ export default function Profile() {
       toast.success('Two-factor authentication enabled');
       setTwoFASetup(null);
       setTwoFAEnableCode('');
+      await refreshMe();
     } catch {
       toast.error('Invalid code');
     }
@@ -84,6 +92,7 @@ export default function Profile() {
       await twoFAAPI.disable(twoFADisableCode);
       toast.success('Two-factor authentication disabled');
       setTwoFADisableCode('');
+      await refreshMe();
     } catch {
       toast.error('Failed to disable');
     }
@@ -216,14 +225,158 @@ export default function Profile() {
               <SkillChipInput skills={skillsWanted} onChange={setSkillsWanted} />
             </div>
           </div>
+          <div>
+            <label className="block font-semibold mb-2">Profile Picture URL</label>
+            <input value={profilePictureUrl} onChange={(e) => setProfilePictureUrl(e.target.value)} placeholder="https://..." className="w-full border rounded-lg p-2 dark:border-neutral-800 dark:bg-neutral-900/50" />
+          </div>
           <button onClick={handleSave} disabled={loading}
             className="w-full mt-4 bg-gradient-to-r from-indigo-600 to-violet-600 text-white py-3 rounded-lg font-semibold hover:opacity-90 transition disabled:opacity-60">
             {loading ? 'Saving...' : 'Save Changes'}
           </button>
         </section>
 
-        {/* Two-Factor Auth, Resources, Calendar sections */}
-        {/* ...keep your same logic, but wrap each in cards like above for visual consistency */}
+        {/* Two-Factor Authentication */}
+        <section className="bg-white dark:bg-neutral-900 p-6 rounded-2xl shadow-md space-y-5">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold">Two-Factor Authentication (2FA)</h2>
+            <span className={`text-sm px-2 py-1 rounded ${((user as any)?.twoFactorEnabled ? 'bg-green-100 text-green-700 dark:bg-green-800/30 dark:text-green-300' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-800/30 dark:text-yellow-300')}`}>
+              {((user as any)?.twoFactorEnabled ? 'Enabled' : 'Disabled')}
+            </span>
+          </div>
+
+          {((user as any)?.twoFactorEnabled) ? (
+            <div className="space-y-3">
+              <p className="text-sm text-gray-600 dark:text-gray-400">Enter a valid 2FA code from your authenticator app to disable 2FA.</p>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <input value={twoFADisableCode} onChange={(e) => setTwoFADisableCode(e.target.value)} placeholder="6-digit code" className="flex-1 border rounded-lg p-2 dark:border-neutral-800 dark:bg-neutral-900/50" />
+                <button onClick={disableTwoFA} className="px-4 py-2 rounded-lg bg-red-600 text-white hover:opacity-90">Disable 2FA</button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {!twoFASetup ? (
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Add an extra layer of security to your account.</p>
+                  <button onClick={startTwoFASetup} className="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:opacity-90">Start 2FA setup</button>
+                </div>
+              ) : (
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="space-y-3">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Scan this QR code with Google Authenticator, 1Password, or Authy:</p>
+                    <img
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(twoFASetup.url)}`}
+                      alt="2FA QR Code"
+                      className="w-56 h-56 rounded-lg bg-white p-3 shadow"
+                    />
+                    <p className="text-xs text-gray-500 dark:text-gray-400 break-all">Or use secret: <span className="font-mono">{twoFASetup.secret}</span></p>
+                  </div>
+                  <div className="space-y-3">
+                    <label className="block font-semibold mb-1">Enter 6-digit code to enable</label>
+                    <input value={twoFAEnableCode} onChange={(e) => setTwoFAEnableCode(e.target.value)} placeholder="6-digit code" className="w-full border rounded-lg p-2 dark:border-neutral-800 dark:bg-neutral-900/50" />
+                    <button onClick={enableTwoFA} className="w-full px-4 py-2 rounded-lg bg-green-600 text-white hover:opacity-90">Enable 2FA</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </section>
+
+        {/* Resources */}
+        <section className="bg-white dark:bg-neutral-900 p-6 rounded-2xl shadow-md space-y-6">
+          <h2 className="text-2xl font-bold">Your Resources</h2>
+
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="space-y-3">
+              <h3 className="font-semibold">Upload a file</h3>
+              <input type="file" onChange={(e) => setSelectedFile(e.target.files?.[0] || null)} className="w-full" />
+              <input value={linkSkill} onChange={(e) => setLinkSkill(e.target.value)} placeholder="Skill (optional)" className="w-full border rounded-lg p-2 dark:border-neutral-800 dark:bg-neutral-900/50" />
+              <button onClick={doUpload} disabled={!selectedFile || uploading} className="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:opacity-90 disabled:opacity-60">
+                {uploading ? 'Uploading...' : selectedFile ? `Upload ${selectedFile.name}` : 'Choose a file'}
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <h3 className="font-semibold">Add a link</h3>
+              <input value={linkTitle} onChange={(e) => setLinkTitle(e.target.value)} placeholder="Title" className="w-full border rounded-lg p-2 dark:border-neutral-800 dark:bg-neutral-900/50" />
+              <input value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} placeholder="https://example.com/resource" className="w-full border rounded-lg p-2 dark:border-neutral-800 dark:bg-neutral-900/50" />
+              <textarea value={linkDesc} onChange={(e) => setLinkDesc(e.target.value)} placeholder="Description (optional)" rows={2} className="w-full border rounded-lg p-2 dark:border-neutral-800 dark:bg-neutral-900/50" />
+              <input value={linkSkill} onChange={(e) => setLinkSkill(e.target.value)} placeholder="Skill (optional)" className="w-full border rounded-lg p-2 dark:border-neutral-800 dark:bg-neutral-900/50" />
+              <button onClick={createLink} className="px-4 py-2 rounded-lg bg-green-600 text-white hover:opacity-90">Add Link</button>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left border-b dark:border-neutral-800">
+                  <th className="py-2">Title</th>
+                  <th className="py-2">Type</th>
+                  <th className="py-2">Skill</th>
+                  <th className="py-2">Size</th>
+                  <th className="py-2">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {resources.map(r => (
+                  <tr key={r.id} className="border-b last:border-0 dark:border-neutral-800">
+                    <td className="py-2 pr-3">{r.title || (r.type === 'LINK' ? (r.url || 'Link') : 'File')}</td>
+                    <td className="py-2 pr-3">{r.type}</td>
+                    <td className="py-2 pr-3">{r.skillName || '-'}</td>
+                    <td className="py-2 pr-3">{r.sizeBytes ? `${(r.sizeBytes / 1024).toFixed(1)} KB` : '-'}</td>
+                    <td className="py-2 flex gap-2">
+                      {r.type !== 'LINK' && (
+                        <button onClick={() => handleDownload(r.id, r.title || undefined)} className="px-2 py-1 rounded bg-neutral-200 dark:bg-neutral-800">Download</button>
+                      )}
+                      <button onClick={() => removeResource(r.id)} className="px-2 py-1 rounded bg-red-500 text-white">Delete</button>
+                    </td>
+                  </tr>
+                ))}
+                {resources.length === 0 && (
+                  <tr><td className="py-4 text-gray-500 dark:text-gray-400" colSpan={5}>No resources yet.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        {/* Calendar */}
+        <section className="bg-white dark:bg-neutral-900 p-6 rounded-2xl shadow-md space-y-6">
+          <h2 className="text-2xl font-bold">Your Calendar Mappings</h2>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left border-b dark:border-neutral-800">
+                  <th className="py-2">Service</th>
+                  <th className="py-2">Status</th>
+                  <th className="py-2">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {mappings.map(m => (
+                  <tr key={m.id} className="border-b last:border-0 dark:border-neutral-800">
+                    <td className="py-2 pr-3">{m.serviceName}</td>
+                    <td className="py-2 pr-3">
+                      <span className={`text-sm px-2 py-1 rounded ${m.status === 'Connected' ? 'bg-green-100 text-green-700 dark:bg-green-800/30 dark:text-green-300' : 'bg-red-100 text-red-700 dark:bg-red-800/30 dark:text-red-300'}`}>
+                        {m.status}
+                      </span>
+                    </td>
+                    <td className="py-2 flex gap-2">
+                      {m.status === 'Disconnected' && (
+                        <button onClick={() => loadMappings()} className="px-2 py-1 rounded bg-indigo-600 text-white hover:opacity-90">Reconnect</button>
+                      )}
+                      {m.status === 'Connected' && (
+                        <button onClick={() => loadMappings()} className="px-2 py-1 rounded bg-neutral-200 dark:bg-neutral-800">Refresh</button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+                {mappings.length === 0 && (
+                  <tr><td className="py-4 text-gray-500 dark:text-gray-400" colSpan={3}>No calendar mappings yet.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
       </div>
     </div>
   );

@@ -1,0 +1,20 @@
+-- Enable pgcrypto for gen_random_uuid()
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+INSERT INTO exam_questions (id, skill, difficulty_level, question_text, options_json, correct_answer, category, explanation) 
+VALUES
+    (gen_random_uuid(), 'Java', 'Easy', 'What is the output of System.out.println(1 + "2" + 3)?', '["123", "6", "15", "error"]', '123', 'Basics', 'When + operator is used with strings, it performs concatenation. First 1+"2" becomes "12", then +"3" makes it "123"'),
+    (gen_random_uuid(), 'Java', 'Medium', 'What is the difference between ArrayList and LinkedList?', null, null, 'Collections', 'ArrayList uses dynamic array, provides fast random access but slow insertion/deletion. LinkedList uses doubly linked list, provides fast insertion/deletion but slow random access'),
+    (gen_random_uuid(), 'Java', 'Hard', 'Explain Java memory leak', null, null, 'Memory Management', 'Memory leak in Java occurs when objects are no longer used but garbage collector cannot remove them because they are still being referenced'),
+
+    (gen_random_uuid(), 'Python', 'Easy', 'What is the output of print(type([]))?', '["<class ''list''>", "<type ''list''>", "list", "array"]', '<class ''list''>', 'Data Types', 'type() function returns the type of an object. Empty square brackets [] create a list object'),
+    (gen_random_uuid(), 'Python', 'Medium', 'What is a decorator in Python?', null, null, 'Functions', 'A decorator is a design pattern that allows you to modify the functionality of a function by wrapping it in another function'),
+    (gen_random_uuid(), 'Python', 'Hard', 'Explain the GIL in Python', null, null, 'Concurrency', 'Global Interpreter Lock (GIL) is a mutex that prevents multiple threads from executing Python bytecode simultaneously'),
+
+    (gen_random_uuid(), 'JavaScript', 'Easy', 'What is the output of console.log(typeof NaN)?', '["number", "undefined", "NaN", "object"]', 'number', 'Types', 'In JavaScript, NaN is a special numeric value meaning "Not a Number", but its type is still "number"'),
+    (gen_random_uuid(), 'JavaScript', 'Medium', 'Explain event bubbling', null, null, 'DOM', 'Event bubbling is the way event propagation works in the DOM tree. Events first trigger on the target element, then bubble up through its ancestors'),
+    (gen_random_uuid(), 'JavaScript', 'Hard', 'What is a closure and how is it useful?', null, null, 'Functions', 'A closure is a function that has access to variables in its outer scope even after the outer function returns'),
+
+    (gen_random_uuid(), 'React', 'Easy', 'What is JSX?', null, null, 'Basics', 'JSX is a syntax extension for JavaScript, recommended for use with React to describe what the UI should look like'),
+    (gen_random_uuid(), 'React', 'Medium', 'What are React hooks?', null, null, 'Hooks', 'Hooks are functions that allow you to "hook into" React state and lifecycle features from function components'),
+    (gen_random_uuid(), 'React', 'Hard', 'Explain React fiber architecture', null, null, 'Internals', 'React Fiber is the new reconciliation engine in React 16. It enables incremental rendering of the virtual DOM');

@@ -28,7 +28,13 @@ services:
       HF_API_KEY: ${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}
       AI_TIMEOUT_MS: 15000
       AI_RATE_PER_MIN: 5
-      SPRING_FLYWAY_ENABLED: "false"
+      SPRING_FLYWAY_ENABLED: "true"
+      SPRING_FLYWAY_VALIDATE_ON_MIGRATE: "false"
+      SPRING_FLYWAY_BASELINE_ON_MIGRATE: "true"
+      SPRING_FLYWAY_REPAIR_ON_STARTUP: "true"
+      STORAGE_LOCAL_PATH: /data/uploads
+    volumes:
+      - uploads_data:/data/uploads
 
   frontend:
     build: ./frontend
@@ -39,3 +45,4 @@ services:
 
 volumes:
   postgres_data:
+  uploads_data:

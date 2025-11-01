@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import { groupsAPI } from '../services/api';
 import Navbar from '../components/Navbar';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 export default function Groups() {
   const { user } = useAuthStore();
@@ -75,7 +76,7 @@ export default function Groups() {
 
         {/* Loading */}
         {loading ? (
-          <div className="text-center text-gray-500 dark:text-gray-400 py-10">Loading groups...</div>
+          <LoadingSpinner />
         ) : items.length === 0 ? (
           <div className="text-center text-gray-500 dark:text-gray-400 py-10">No groups found.</div>
         ) : (

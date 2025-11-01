@@ -81,9 +81,7 @@ export const reviewAPI = {
   getUserReviews: (userId: string) => api.get(`/reviews/user/${userId}`),
 };
 
-export const leaderboardAPI = {
-  getTop: () => api.get('/leaderboard'),
-};
+// leaderboard API removed (feature not implemented)
 
 export const notificationAPI = {
   list: () => api.get('/notifications'),
@@ -119,11 +117,7 @@ export const resourceAPI = {
   download: (id: string) => api.get(`/resources/${id}/download`, { responseType: 'blob' })
 };
 
-export const aiAPI = {
-  ask: (question: string, skill?: string) => api.post('/ai/ask', { question, skill }),
-  history: (page = 0, size = 20) => api.get(`/ai/history`, { params: { page, size } }),
-  clearHistory: () => api.delete('/ai/history'),
-};
+// ai API removed (feature not implemented)
 
 export const calendarAPI = {
   myMappings: () => api.get('/calendar/mappings'),
@@ -144,6 +138,7 @@ export const groupsAPI = {
   shareResource: (id: string, resourceId: string) => api.post(`/groups/${id}/resources/share`, { resourceId }),
   sessions: (id: string) => api.get(`/groups/${id}/sessions`),
   scheduleSession: (id: string, scheduledTime: string, duration?: number) => api.post(`/groups/${id}/sessions`, { scheduledTime, duration }),
+  presence: (id: string) => api.get(`/groups/${id}/presence`),
 };
 
 export const examAPI = {

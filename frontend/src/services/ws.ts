@@ -45,7 +45,7 @@ export function disconnectNotifications() {
   client = null;
 }
 
-export function connectGroup(groupId: string, token: string, onMessage: (payload: any) => void, onTyping?: (payload: any) => void, onConnected?: () => void) {
+export function connectGroup(groupId: string, token: string, onMessage: (payload: any) => void, onTyping?: (payload: any) => void, onPresence?: (payload: any) => void, onConnected?: () => void) {
   disconnectGroup();
   const base = getBase();
   groupClient = new Client({
@@ -61,6 +61,11 @@ export function connectGroup(groupId: string, token: string, onMessage: (payload
     if (onTyping) {
       groupTypingSubs = groupClient!.subscribe(`/topic/group/${groupId}/typing`, (message: IMessage) => {
         try { onTyping(JSON.parse(message.body)); } catch {}
+      }, { Authorization: `Bearer ${token}`, token });
+    }
+    if (onPresence) {
+      groupClient!.subscribe(`/topic/group/${groupId}/presence`, (message: IMessage) => {
+        try { onPresence(JSON.parse(message.body)); } catch {}
       }, { Authorization: `Bearer ${token}`, token });
     }
   };

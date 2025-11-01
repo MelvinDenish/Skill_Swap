@@ -232,7 +232,8 @@ public class ResourceController {
 
     @GetMapping("")
     public ResponseEntity<List<ResourceItemDTO>> all() {
-        List<ResourceItemDTO> list = resourceItemRepository.findAllOrderByCreatedAtDesc()
+        // Community/public resources exclude items that are shared only within groups
+        List<ResourceItemDTO> list = resourceItemRepository.findPublicOrderByCreatedAtDesc()
                 .stream().map(this::toDto).collect(Collectors.toList());
         return ResponseEntity.ok(list);
     }
