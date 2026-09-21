@@ -161,9 +161,7 @@ public void shareResource(UUID groupId, UUID resourceId, UUID requesterId) {
     link.setResource(r);
     link.setSharedBy(user);
     link.setAddedAt(java.time.LocalDateTime.now());
-    groupResourceRepo.save(link);  
-}
-    @Transactional(readOnly = true)
+    groupResourceRepo.save(link);    @Transactional(readOnly = true)
     public java.util.List<GroupSessionDTO> listSessions(UUID groupId) {
         return groupSessionRepo.findByGroup_IdOrderByScheduledTimeDesc(groupId).stream().map(this::toDto).toList();
     }
